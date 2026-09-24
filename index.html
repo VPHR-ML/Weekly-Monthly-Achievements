@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mangalam · Weekly Achievement & Incentive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#ECEEF0; --surface:#FFFFFF; --surface-2:#F6F7F8; --ink:#22262A; --ink-2:#59626B; --ink-3:#8A939B;
+  --line:#D6DBE0; --line-2:#E7EAED;
+  --brand:#D7262F; --steel:#35546E; --steel-2:#9DB2C4;
+  --good:#067647; --good-bg:#E4F4EB; --watch:#8F5B00; --watch-bg:#FBF1D9; --risk:#B42318; --risk-bg:#FCE8E6;
+  --info-bg:#E8EEF4;
+  --r-lg:14px; --r-md:10px; --r-sm:6px;
+  --font:"Archivo", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181B; --surface:#1E2226; --surface-2:#252A2F; --ink:#E9ECEF; --ink-2:#A9B2BA; --ink-3:#7B858E;
+    --line:#343A40; --line-2:#2B3035; --steel:#8FB0CC; --steel-2:#4F6A80;
+    --good:#4ADE9A; --good-bg:#16352A; --watch:#E5B454; --watch-bg:#3A2F16; --risk:#FF8A80; --risk-bg:#3E1F1D; --info-bg:#22303C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181B; --surface:#1E2226; --surface-2:#252A2F; --ink:#E9ECEF; --ink-2:#A9B2BA; --ink-3:#7B858E;
+  --line:#343A40; --line-2:#2B3035; --steel:#8FB0CC; --steel-2:#4F6A80;
+  --good:#4ADE9A; --good-bg:#16352A; --watch:#E5B454; --watch-bg:#3A2F16; --risk:#FF8A80; --risk-bg:#3E1F1D; --info-bg:#22303C;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+h1,h2,h3{font-stretch:78%;font-weight:750;letter-spacing:-.01em;margin:0;line-height:1.15}
+h1{font-size:30px} h2{font-size:21px} h3{font-size:16px;font-stretch:90%}
+p{margin:0}
+.muted{color:var(--ink-2)} .faint{color:var(--ink-3)} .small{font-size:13px}
+.num{text-align:right;white-space:nowrap}
+/* logo */
+.logo{display:inline-flex;flex-direction:column;line-height:1;user-select:none}
+.logo b{font-size:23px;font-weight:800;font-stretch:88%;letter-spacing:-.02em;color:var(--ink);position:relative}
+.logo b i{display:inline-block;width:7px;height:7px;background:var(--brand);border-radius:50%;margin-left:2px;vertical-align:baseline}
+.logo span{font-size:10px;letter-spacing:.32em;color:var(--ink-2);margin-top:4px;font-weight:600}
+.logo img{max-height:40px;max-width:180px}
+/* login */
+.login-wrap{min-height:100%;display:grid;place-items:center;padding:24px}
+.login{width:min(430px,100%);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px}
+.login h1{margin:28px 0 6px}
+.login .field{margin-top:16px}
+/* shell */
+.shell{display:grid;grid-template-columns:236px 1fr;min-height:100%}
+.side{background:var(--surface);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;height:100dvh}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{all:unset;cursor:pointer;padding:9px 12px;border-radius:var(--r-sm);color:var(--ink-2);font-weight:560;display:flex;justify-content:space-between;align-items:center}
+.nav button:hover{background:var(--surface-2);color:var(--ink)}
+.nav button.on{background:var(--ink);color:var(--surface)}
+.nav button:focus-visible{outline:2px solid var(--steel)}
+.badge{font-size:11px;font-weight:700;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--brand);color:#fff;display:inline-grid;place-items:center}
+.who{margin-top:auto;border-top:1px solid var(--line-2);padding-top:14px;font-size:13px}
+.who strong{display:block;font-size:14px}
+.main{min-width:0;padding:26px 32px 60px}
+.topbar{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+.topbar .ctx{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.store-tag{font-size:12px;color:var(--ink-3)}
+/* controls */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:8px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.btn.good{background:var(--good);border-color:var(--good);color:#fff}
+.btn.danger{color:var(--risk);border-color:color-mix(in srgb,var(--risk) 40%,var(--line))}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input.in,select.in,textarea.in{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:8px 10px;min-width:0}
+input.in:focus,select.in:focus,textarea.in:focus{outline:2px solid var(--steel);outline-offset:0;border-color:transparent}
+input.cell{width:100%;min-width:90px;text-align:right;border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:6px 8px}
+input.cell:disabled{background:var(--surface-2);color:var(--ink-2);border-color:var(--line-2)}
+label.lbl{display:block;font-size:13px;color:var(--ink-2);margin-bottom:5px;font-weight:560}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;font-size:13px;font-weight:600;color:var(--ink-2);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:var(--surface)}
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px 22px}
+.panel + .panel,.stack > * + *{margin-top:18px}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+.grid2 > .panel + .panel{margin-top:0}
+.grid2 > *{min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden;margin-bottom:18px}
+.kpi{padding:14px 18px;border-right:1px solid var(--line-2)}
+.kpi:last-child{border-right:0}
+.kpi .v{font-size:25px;font-weight:760;font-stretch:80%;letter-spacing:-.01em}
+.kpi .l{font-size:12.5px;color:var(--ink-2)}
+.kpi .s{font-size:12px;color:var(--ink-3)}
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line-2);border-radius:var(--r-md)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-weight:640;color:var(--ink-2);text-align:left;font-size:12.5px;background:var(--surface-2);padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.total td{font-weight:700;background:var(--surface-2)}
+tr.grand td{font-weight:800;background:var(--ink);color:var(--surface)}
+tr.proj-row td:first-child{font-weight:700}
+.pct{font-weight:700;padding:2px 8px;border-radius:5px;display:inline-block;min-width:58px;text-align:right}
+.pct.good{color:var(--good);background:var(--good-bg)} .pct.watch{color:var(--watch);background:var(--watch-bg)} .pct.risk{color:var(--risk);background:var(--risk-bg)} .pct.none{color:var(--ink-3)}
+.chip{font-size:12px;font-weight:650;padding:2px 9px;border-radius:20px;display:inline-block;white-space:nowrap}
+.chip.draft{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.chip.submitted{background:var(--info-bg);color:var(--steel)}
+.chip.approved{background:var(--good-bg);color:var(--good)}
+.chip.returned{background:var(--risk-bg);color:var(--risk)}
+.chip.empty{color:var(--ink-3)}
+/* incentive line board (signature) */
+.board{display:flex;flex-direction:column;gap:6px}
+.lane{display:grid;grid-template-columns:150px 1fr 150px;gap:16px;align-items:center;padding:8px 0}
+.lane + .lane{border-top:1px dashed var(--line-2)}
+.lane .name{font-weight:700;font-stretch:88%;font-size:16px}
+.lane .name small{display:block;font-weight:500;font-size:12px;color:var(--ink-3);font-stretch:100%}
+.track{position:relative;height:30px;border-radius:4px;background:repeating-linear-gradient(90deg,var(--surface-2) 0 calc(100%/12 - 1px),var(--line-2) calc(100%/12 - 1px) calc(100%/12))}
+.track .fill{position:absolute;left:0;top:5px;bottom:5px;border-radius:3px;background:var(--steel);max-width:100%}
+.track .fill.good{background:var(--good)}
+.track .proj{position:absolute;top:1px;bottom:1px;width:0;border-left:2px dashed var(--ink-2)}
+.track .proj::after{content:"";position:absolute;top:-4px;left:-5px;border:4px solid transparent;border-top-color:var(--ink-2)}
+.track .line{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--brand);z-index:2}
+.track .line::before{content:"";position:absolute;top:-6px;left:-5px;width:12px;height:12px;border-radius:50%;background:var(--brand)}
+.lane .fig{text-align:right}
+.lane .fig b{font-size:22px;font-stretch:80%;font-weight:780}
+.lane .fig span{display:block;font-size:12px;color:var(--ink-2)}
+.axis{display:grid;grid-template-columns:150px 1fr 150px;gap:16px;font-size:11px;color:var(--ink-3)}
+.axis .ticks{position:relative;height:14px}
+.axis .ticks span{position:absolute;transform:translateX(-50%)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin-top:12px}
+.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
+.hero-num{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hero-num .big{font-size:64px;font-weight:800;font-stretch:70%;line-height:1;letter-spacing:-.02em}
+/* insights */
+.ins{display:grid;grid-template-columns:4px 1fr;gap:14px;padding:12px 0}
+.ins + .ins{border-top:1px solid var(--line-2)}
+.ins .bar{border-radius:2px;background:var(--steel)}
+.ins.good .bar{background:var(--good)} .ins.watch .bar{background:var(--watch)} .ins.risk .bar{background:var(--risk)}
+.ins h3{margin-bottom:3px}
+.ins p{color:var(--ink-2);font-size:14px}
+.ins .act{margin-top:5px;font-size:13.5px;color:var(--ink)}
+.ins .act b{font-weight:700}
+/* charts */
+.chart{width:100%;overflow-x:auto}
+.chart svg{display:block;width:100%;height:auto;min-width:520px}
+.chart text{fill:var(--ink-2);font-family:var(--font);font-size:11px}
+.heat td.h{text-align:center;font-weight:650;font-size:13px}
+/* week tabs */
+.weeks{display:flex;gap:8px;flex-wrap:wrap}
+.weeks button{all:unset;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:8px 14px;min-width:120px}
+.weeks button.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.weeks button b{display:block;font-stretch:85%;font-size:15px}
+.weeks button span{font-size:12px;color:var(--ink-2)}
+.banner{border-radius:var(--r-md);padding:12px 16px;margin-bottom:14px;font-size:14px;background:var(--info-bg)}
+.banner.risk{background:var(--risk-bg)} .banner.good{background:var(--good-bg)} .banner.watch{background:var(--watch-bg)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.empty{padding:40px 20px;text-align:center;color:var(--ink-2)}
+.empty h3{color:var(--ink);margin-bottom:6px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+.cards > .panel + .panel{margin-top:0}
+.bld-list{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.bld{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:center}
+.kind{font-size:12px;color:var(--ink-3)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:var(--r-md);font-weight:600;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+dialog{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);color:var(--ink);padding:22px;width:min(520px,94vw)}
+dialog::backdrop{background:rgba(20,24,28,.45)}
+/* meeting */
+.meet{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.meet-top{display:flex;align-items:center;gap:16px;padding:14px 28px;border-bottom:1px solid var(--line);background:var(--surface)}
+.meet-body{flex:1;overflow:auto;padding:28px 40px}
+.meet-body .inner{max-width:1320px;margin:0 auto}
+.meet .dots{display:flex;gap:6px}
+.meet .dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.meet .dots i.on{background:var(--brand)}
+.meet h1{font-size:40px}
+.meet .kpi .v{font-size:32px}
+@media (max-width:1020px){.grid2{grid-template-columns:1fr}.grid2 > .panel + .panel{margin-top:18px}}
+@media (max-width:820px){
+  .shell{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 14px;gap:12px;border-right:0;border-bottom:1px solid var(--line)}
+  .nav{flex-direction:row;flex-wrap:wrap;gap:4px;order:3;width:100%}
+  .nav button{padding:6px 10px;font-size:14px}
+  .who{margin:0 0 0 auto;border:0;padding:0;text-align:right}
+  .main{padding:18px 14px 50px}
+  .lane,.axis{grid-template-columns:96px 1fr 88px;gap:10px}
+  .lane .fig b{font-size:18px}
+  .hero-num .big{font-size:48px}
+  .meet-body{padding:18px}
+}
+@media (prefers-reduced-motion:no-preference){.track .fill{transition:width .5s ease}}
+@media print{.side,.topbar .ctx{display:none}.shell{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<dialog id="dlg"></dialog>
+<script>
+/* ================= Mangalam Weekly Achievement & Incentive ================= */
+const LOGO_SRC = ""; // paste a data:image/png;base64,... of the official logo here to replace the wordmark
+const slug = s => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || ('x'+Date.now());
+const B = (pid, name, kind='Building') => ({id: pid+'--'+slug(name), name, kind});
+const DEFAULT_CONFIG = {
+  settings:{unit:'₹ Lakhs', threshold:80, slabs:[{min:80,pct:30}], base:'gross'},
+  ceo:{name:'CEO', password:'123'},
+  clusters:[
+    {id:'vijay', name:'Vijaykumar Bhalekar', password:'123'},
+    {id:'dinesh', name:'Dinesh Chavan', password:'123'},
+    {id:'upendra', name:'Upendra Gulve', password:'123'}
+  ],
+  projects:[
+    {id:'marvel', name:'Marvel', clusterId:'vijay', password:'123', buildings:['Wing A','Wing B','Wing C','Wing D','Wing E'].map(n=>B('marvel',n)).concat([B('marvel','Infra','Infra')])},
+    {id:'miraya', name:'Miraya', clusterId:'dinesh', password:'123', buildings:['Wing A','Wing B','Wing C','Wing D'].map(n=>B('miraya',n)).concat([B('miraya','Infra','Infra')])},
+    {id:'midas-city', name:'Midas City', clusterId:'vijay', password:'123', buildings:['Wing A','Wing B','Wing E','Wing F','Wing G'].map(n=>B('midas-city',n)).concat([B('midas-city','Infra','Infra')])},
+    {id:'mithila-01', name:'Mithila-01', clusterId:'vijay', password:'123', buildings:[B('mithila-01','Wing A')]},
+    {id:'shyni-gold', name:'Shyni Gold', clusterId:'', password:'123', buildings:[B('shyni-gold','Wing A/B')]},
+    {id:'niyoshi-park', name:'Niyoshi Park', clusterId:'upendra', password:'123', buildings:[B('niyoshi-park','Wing A'), B('niyoshi-park','Infra','Infra')]}
+  ]
+};
+const PCOL = ['#35546E','#067647','#B54708','#6941C6','#0E7490','#A21C4B','#4D7C0F','#7C2D12','#475467','#1D4ED8'];
+
+/* ---------- storage: Claude artifact db → Vercel /api/store (Neon) → this browser ---------- */
+const Store = {
+  mode:'local', db:null, unsubs:[],
+  async init(){
+    if (window.claude && typeof window.claude.use === 'function'){
+      try{
+        const db = await Promise.race([window.claude.use('db'), new Promise(r=>setTimeout(()=>r(null),8000))]);
+        if (db){ this.db = db; this.mode = 'cloud'; return; }
+      }catch(e){}
+    }
+    if (location.protocol.startsWith('http')){
+      try{
+        const r = await fetch('api/store?col=app&id=config',{cache:'no-store'});
+        if (r.ok && (r.headers.get('content-type')||'').includes('json')){ this.mode='api'; return; }
+      }catch(e){}
+    }
+    this.mode='local';
+  },
+  lk(col,id){ return 'mip:'+col+':'+id },
+  async get(col,id){
+    if (this.mode==='cloud'){ const s = await this.db.doc(col+'/'+id).get(); return s.exists ? JSON.parse(JSON.stringify(s.data())) : null; }
+    if (this.mode==='api'){ const r = await fetch(`api/store?col=${encodeURIComponent(col)}&id=${encodeURIComponent(id)}`,{cache:'no-store'}); const j = await r.json(); return j.data ?? null; }
+    try{ const v = localStorage.getItem(this.lk(col,id)); return v ? JSON.parse(v) : null; }catch(e){ return null; }
+  },
+  async set(col,id,data){
+    if (this.mode==='cloud'){ return this.db.doc(col+'/'+id).set(data); }
+    if (this.mode==='api'){ const r = await fetch('api/store',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({col,id,data})}); if(!r.ok) throw new Error('Save failed ('+r.status+')'); return; }
+    try{ localStorage.setItem(this.lk(col,id), JSON.stringify(data)); }catch(e){ throw new Error('This browser blocked local storage'); }
+  },
+  async del(col,id){
+    if (this.mode==='cloud') return this.db.doc(col+'/'+id).delete();
+    if (this.mode==='api'){ await fetch(`api/store?col=${encodeURIComponent(col)}&id=${encodeURIComponent(id)}`,{method:'DELETE'}); return; }
+    try{ localStorage.removeItem(this.lk(col,id)); }catch(e){}
+  },
+  async list(col){
+    if (this.mode==='cloud'){ const s = await this.db.collection(col).get(); return s.docs.map(d=>({id:d.id, data:JSON.parse(JSON.stringify(d.data()))})); }
+    if (this.mode==='api'){ const r = await fetch(`api/store?col=${encodeURIComponent(col)}`,{cache:'no-store'}); const j = await r.json(); return j.docs || []; }
+    const out=[]; try{ for (let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if (k.startsWith('mip:'+col+':')) out.push({id:k.slice(col.length+5), data:JSON.parse(localStorage.getItem(k))}); } }catch(e){}
+    return out;
+  },
+  watch(onChange){
+    if (this.mode==='cloud'){
+      const safe = fn => (snap)=>{ try{ fn(snap) }catch(e){ console.error(e) } };
+      this.unsubs.push(this.db.doc('app/config').onSnapshot(safe(s=>{ if(s.exists){ S.config = normConfig(JSON.parse(JSON.stringify(s.data()))); onChange('config'); } })));
+      this.unsubs.push(this.db.collection('entries').onSnapshot(safe(s=>{ S.entries={}; s.docs.forEach(d=>S.entries[d.id]=JSON.parse(JSON.stringify(d.data()))); onChange('entries'); })));
+      this.unsubs.push(this.db.doc('app/staff').onSnapshot(safe(s=>{ S.staff = s.exists ? (s.data().rows||[]).map(r=>({...r})) : []; onChange('staff'); })));
+      this.unsubs.push(this.db.collection('incentives').onSnapshot(safe(s=>{ S.inc={}; s.docs.forEach(d=>S.inc[d.id]=JSON.parse(JSON.stringify(d.data()))); onChange('inc'); })));
+    } else if (this.mode==='api'){
+      setInterval(async()=>{ if (S.dirty || document.hidden) return; await loadAll(); onChange('poll'); }, 45000);
+    }
+  }
+};
+function normConfig(c){
+  const d = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  c = c || d;
+  c.settings = Object.assign({}, d.settings, c.settings||{});
+  if (!Array.isArray(c.settings.slabs) || !c.settings.slabs.length) c.settings.slabs = d.settings.slabs;
+  c.ceo = Object.assign({}, d.ceo, c.ceo||{});
+  c.clusters = c.clusters || []; c.projects = c.projects || [];
+  c.projects.forEach(p=>{ p.buildings = p.buildings||[]; });
+  return c;
+}
+
+/* ---------- state ---------- */
+const S = {
+  config:null, entries:{}, staff:[], inc:{},
+  user:null, view:null, month:null, week:1, approvedOnly:true, projectSel:null, dirty:false, meet:null
+};
+async function loadAll(){
+  let cfg = await Store.get('app','config');
+  if (!cfg){ cfg = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); try{ await Store.set('app','config',cfg); }catch(e){} }
+  S.config = normConfig(cfg);
+  const ents = await Store.list('entries'); S.entries = {}; ents.forEach(e=>S.entries[e.id]=e.data);
+  const st = await Store.get('app','staff'); S.staff = st ? (st.rows||[]) : [];
+  const inc = await Store.list('incentives'); S.inc = {}; inc.forEach(e=>S.inc[e.id]=e.data);
+}
+
+/* ---------- calendar: four reviews a month (1–7, 8–14, 15–21, 22–end) ---------- */
+const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MNL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function monthInfo(month){
+  const [y,m] = month.split('-').map(Number); const dim = new Date(y,m,0).getDate();
+  const weeks = [1,2,3,4].map(n=>{ const start=(n-1)*7+1, end = n<4 ? n*7 : dim; return {n,start,end,days:end-start+1}; });
+  return {y,m,dim,weeks,label:MNL[m-1]+' '+y, short:MN[m-1]+' '+String(y).slice(2)};
+}
+function fyMonths(month){ // Apr..Mar of the FY containing month
+  const [y,m] = month.split('-').map(Number); const fy = m>=4 ? y : y-1;
+  return Array.from({length:12},(_,i)=>{ const mm=(3+i)%12+1, yy= i<9?fy:fy+1; return yy+'-'+String(mm).padStart(2,'0'); });
+}
+function fyLabel(month){ const [y,m]=month.split('-').map(Number); const fy=m>=4?y:y-1; return 'FY'+fy+'-'+String(fy+1).slice(2); }
+function todayMonth(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function todayWeek(){ const d=new Date().getDate(); return d<=7?1:d<=14?2:d<=21?3:4; }
+
+/* ---------- numbers ---------- */
+const nf = new Intl.NumberFormat('en-IN',{maximumFractionDigits:2});
+const nf0 = new Intl.NumberFormat('en-IN',{maximumFractionDigits:0});
+const fmt = v => (v==null||isNaN(v)) ? '–' : nf.format(v);
+const rs = v => (v==null||isNaN(v)) ? '–' : '₹'+nf0.format(Math.round(v));
+const pctS = v => (v==null||!isFinite(v)) ? '–' : (Math.round(v*10)/10).toFixed(1)+'%';
+const thr = () => +S.config.settings.threshold || 80;
+const tone = p => (p==null||!isFinite(p)) ? 'none' : p>=thr() ? 'good' : p>=thr()*0.75 ? 'watch' : 'risk';
+const pctChip = p => `<span class="pct ${tone(p)}">${pctS(p)}</span>`;
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(String(v).replace(/,/g,'')); return isFinite(n)?n:0; };
+
+/* ---------- lookups ---------- */
+const proj = id => S.config.projects.find(p=>p.id===id);
+const cluster = id => S.config.clusters.find(c=>c.id===id);
+const entryId = (month,pid) => month+'_'+pid;
+function getEntry(month,pid){
+  return S.entries[entryId(month,pid)] || {month, projectId:pid, targets:{}, weeks:{}};
+}
+const wk = (e,n) => (e.weeks && e.weeks[n]) || {vals:{}, status:'draft'};
+function visibleProjects(){
+  const u=S.user; if(!u) return [];
+  if (u.role==='ceo') return S.config.projects;
+  if (u.role==='cluster') return S.config.projects.filter(p=>p.clusterId===u.id);
+  return S.config.projects.filter(p=>p.id===u.id);
+}
+function includeStatus(st, mode){
+  if (mode==='approved') return st==='approved';
+  if (mode==='submitted') return st==='approved'||st==='submitted';
+  return st==='approved'||st==='submitted'||st==='draft'||st==='returned';
+}
+function viewMode(){
+  if (!S.user) return 'approved';
+  if (S.user.role==='project') return 'all';
+  if (S.user.role==='cluster') return S.approvedOnly ? 'approved' : 'submitted';
+  return S.approvedOnly ? 'approved' : 'submitted';
+}
+
+/* ---------- core calculation ---------- */
+function calcProject(pid, month, mode){
+  const p = proj(pid); const mi = monthInfo(month); const e = getEntry(month,pid);
+  const blds = p.buildings.map(b=>({id:b.id,name:b.name,kind:b.kind,target:num(e.targets?.[b.id]),weeks:[],mtd:0}));
+  const weeks = mi.weeks.map(w=>{
+    const W = wk(e,w.n); const inc = includeStatus(W.status||'draft', mode) && Object.keys(W.vals||{}).length>0;
+    let t=0,a=0;
+    blds.forEach(b=>{ const v = W.vals?.[b.id]||{}; const bt = v.t!=null&&v.t!=='' ? num(v.t) : (b.target*w.days/mi.dim); const ba = num(v.a);
+      b.weeks.push({t:bt, a:inc?ba:null, raw:ba}); if (inc){ b.mtd += ba; } t+=bt; a+=ba; });
+    return {...w, status:W.status||'draft', hasData:Object.keys(W.vals||{}).length>0, included:inc, t, a:inc?a:null, rawA:a, note:W.note||'', by:W.approvedBy||'', at:W.approvedAt||W.submittedAt||''};
+  });
+  const target = blds.reduce((s,b)=>s+b.target,0);
+  let cumA=0, cumT=0, lastIdx=-1;
+  weeks.forEach((w,i)=>{ cumT += w.t; w.cumT = cumT; if (w.included){ cumA += w.a; lastIdx=i; } w.cumA = w.included ? cumA : null;
+    w.weekPct = w.included && w.t>0 ? w.a/w.t*100 : null;
+    w.cumPct = w.included && target>0 ? cumA/target*100 : null;
+    w.projRR = w.included && target>0 ? (cumA/w.end*mi.dim)/target*100 : null;
+    w.projMom = w.included && target>0 ? (cumA + (w.a/w.days)*(mi.dim-w.end))/target*100 : null;
+  });
+  blds.forEach(b=>{ b.pct = b.target>0 ? b.mtd/b.target*100 : null; b.share = cumA>0 ? b.mtd/cumA*100 : 0; });
+  const last = lastIdx>=0 ? weeks[lastIdx] : null;
+  const daysDone = last ? last.end : 0; const remWeeks = 4-(lastIdx+1);
+  const need80 = Math.max(0, target*thr()/100 - cumA);
+  const need100 = Math.max(0, target - cumA);
+  const pct = target>0 && last ? cumA/target*100 : null;
+  const planPace = last && last.cumT>0 ? cumA/last.cumT*100 : null;
+  const prev = lastIdx>0 ? weeks[lastIdx-1] : null;
+  return {p, pid, month, mi, e, blds, weeks, target, mtd:cumA, pct, last, lastIdx, daysDone, remWeeks,
+    projRR: last?last.projRR:null, projMom: last?last.projMom:null, planPace,
+    perWeek80: remWeeks>0 ? need80/remWeeks : null, need80, need100,
+    avgWeekA: lastIdx>=0 ? cumA/(lastIdx+1) : null, lastWeekA: last?last.a:null, prevWeekPct: prev?prev.weekPct:null};
+}
+function calcPortfolio(pids, month, mode){
+  const list = pids.map(id=>calcProject(id,month,mode));
+  const target = list.reduce((s,c)=>s+c.target,0);
+  const withData = list.filter(c=>c.last);
+  const mtd = list.reduce((s,c)=>s+c.mtd,0);
+  const projAbs = list.reduce((s,c)=>s+(c.projRR!=null?c.projRR*c.target/100:0),0);
+  const lastIdx = Math.max(-1,...list.map(c=>c.lastIdx));
+  const weeks = [0,1,2,3].map(i=>{ let a=0,t=0,inc=false; list.forEach(c=>{ const w=c.weeks[i]; t+=w.t; if(w.included){a+=w.a;inc=true;} }); return {n:i+1,a:inc?a:null,t}; });
+  return {list, target, mtd, pct: target>0&&withData.length ? mtd/target*100 : null, projRR: target>0&&withData.length ? projAbs/target*100 : null, lastIdx, weeks, withData};
+}
+function slabPct(p){ if (p==null) return 0; let best=0; S.config.settings.slabs.slice().sort((a,b)=>a.min-b.min).forEach(s=>{ if (p>=+s.min) best=+s.pct; }); return best; }
+function pendingFor(user){
+  const out=[]; const months = new Set(Object.values(S.entries).map(e=>e.month));
+  months.forEach(m=>{ S.config.projects.forEach(p=>{
+    if (user.role==='cluster' && p.clusterId!==user.id) return;
+    const e = S.entries[entryId(m,p.id)]; if(!e) return;
+    Object.keys(e.weeks||{}).forEach(n=>{ if (e.weeks[n].status==='submitted') out.push({month:m,pid:p.id,n:+n,at:e.weeks[n].submittedAt}); });
+  }); });
+  return out.sort((a,b)=>(a.month+a.n).localeCompare(b.month+b.n));
+}
+/* ---------- charts (plain SVG) ---------- */
+function lineChart({series, labels, ref, height=270}){
+  const W=760,H=height,L=40,R=120,T=16,Bt=28, iw=W-L-R, ih=H-T-Bt;
+  let maxV = Math.max(110, ...series.flatMap(s=>s.points.concat([s.proj]).filter(v=>v!=null)));
+  maxV = Math.ceil(maxV/25)*25;
+  const x = i => L + i*(iw/(labels.length-1)); const y = v => T+ih - Math.min(v,maxV)/maxV*ih;
+  let g='';
+  for (let v=0; v<=maxV; v+=25){ g+=`<line x1="${L}" x2="${L+iw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line-2)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}%</text>`; }
+  labels.forEach((l,i)=> g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${esc(l)}</text>`);
+  if (ref!=null) g+=`<line x1="${L}" x2="${L+iw}" y1="${y(ref)}" y2="${y(ref)}" stroke="var(--brand)" stroke-width="1.5"/><circle cx="${L}" cy="${y(ref)}" r="4" fill="var(--brand)"/><text x="${L+8}" y="${y(ref)-6}" style="fill:var(--brand);font-weight:700">Incentive line ${ref}%</text>`;
+  const ends=[];
+  series.forEach(s=>{
+    const pts = s.points.map((v,i)=>v==null?null:[x(i),y(v)]); let d=''; let lastPt=null, lastI=-1;
+    pts.forEach((p,i)=>{ if(!p) return; d += (d?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); lastPt=p; lastI=i; });
+    g+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    pts.forEach(p=>{ if(p) g+=`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${s.color}"/>`; });
+    if (s.proj!=null && lastPt && lastI<labels.length-1){
+      const px=x(labels.length-1), py=y(s.proj);
+      g+=`<path d="M${lastPt[0]} ${lastPt[1]}L${px} ${py}" stroke="${s.color}" stroke-width="2" stroke-dasharray="5 5" fill="none" opacity=".8"/><circle cx="${px}" cy="${py}" r="4" fill="var(--surface)" stroke="${s.color}" stroke-width="2"/>`;
+      ends.push({y:py,c:s.color,t:s.name+' '+Math.round(s.proj)+'%'});
+    } else if (lastPt){ ends.push({y:lastPt[1],c:s.color,t:s.name+' '+Math.round(s.points[lastI])+'%'}); }
+  });
+  ends.sort((a,b)=>a.y-b.y); let prevY=-99; ends.forEach(e=>{ const yy=Math.max(e.y+4, prevY+13); prevY=yy; g+=`<text x="${L+iw+8}" y="${yy}" style="fill:${e.c};font-weight:650">${esc(e.t)}</text>`; });
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative achievement by week">${g}</svg></div>`;
+}
+function barChart({groups, labels, ref, pctMode=false, height=240, colors=['var(--steel-2)','var(--steel)']}){
+  // groups: [{label, values:[v1,v2]}]
+  const W=760,H=height,L=pctMode?40:64,R=16,T=16,Bt=30, iw=W-L-R, ih=H-T-Bt;
+  let maxV = Math.max(pctMode?110:1, ...groups.flatMap(g=>g.values.filter(v=>v!=null)));
+  const step = pctMode?25:niceStep(maxV/4); maxV = Math.ceil(maxV/step)*step || 1;
+  const y = v => T+ih - v/maxV*ih; const gw = iw/groups.length; const nb = groups[0]?.values.length||1; const bw = Math.min(34,(gw*0.7)/nb);
+  let g='';
+  for (let v=0; v<=maxV+1e-9; v+=step){ g+=`<line x1="${L}" x2="${L+iw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line-2)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${pctMode?Math.round(v)+'%':shortNum(v)}</text>`; }
+  groups.forEach((gr,i)=>{
+    const cx = L + gw*i + gw/2; const x0 = cx - bw*nb/2;
+    gr.values.forEach((v,j)=>{ if (v==null) return; const col = typeof colors[j]==='function'?colors[j](v):colors[j]; g+=`<rect x="${x0+j*bw+1}" y="${y(Math.max(v,0))}" width="${bw-2}" height="${Math.max(0,ih-(y(Math.max(v,0))-T))}" rx="2" fill="${col}"><title>${esc(gr.label)}: ${pctMode?pctS(v):fmt(v)}</title></rect>`;
+      if (pctMode) g+=`<text x="${x0+j*bw+bw/2}" y="${y(Math.max(v,0))-4}" text-anchor="middle" style="font-weight:650;fill:var(--ink)">${Math.round(v)}%</text>`; });
+    g+=`<text x="${cx}" y="${H-9}" text-anchor="middle">${esc(gr.label)}</text>`;
+  });
+  if (ref!=null) g+=`<line x1="${L}" x2="${L+iw}" y1="${y(ref)}" y2="${y(ref)}" stroke="var(--brand)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart">${g}</svg></div>`;
+}
+function niceStep(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=5?5:10)*p; }
+function shortNum(v){ return v>=1e7?(v/1e7).toFixed(1)+'Cr':v>=1e5?(v/1e5).toFixed(1)+'L':v>=1e3?(v/1e3).toFixed(1)+'k':String(Math.round(v*100)/100); }
+
+/* ---------- the signature: the incentive line board ---------- */
+function board(pf){
+  const max=120, pos=v=>Math.max(0,Math.min(v,max))/max*100;
+  const ticks=[0,20,40,60,80,100,120].map(v=>`<span style="left:${pos(v)}%">${v}%</span>`).join('');
+  const lanes = pf.list.map(c=>{
+    const fill = c.pct!=null ? `<div class="fill ${c.pct>=thr()?'good':''}" style="width:${pos(c.pct)}%"></div>` : '';
+    const pj = c.projRR!=null ? `<div class="proj" style="left:${pos(c.projRR)}%" title="Projected month end ${pctS(c.projRR)}"></div>` : '';
+    const cl = cluster(c.p.clusterId);
+    return `<div class="lane"><div class="name">${esc(c.p.name)}<small>${c.last?('Through W'+c.last.n+' · '):''}${esc(cl?cl.name.split(' ')[0]:'CEO approves')}</small></div>
+      <div class="track">${fill}${pj}<div class="line" style="left:${pos(thr())}%"></div></div>
+      <div class="fig"><b style="color:var(--${tone(c.pct)==='none'?'ink-3':tone(c.pct)})">${pctS(c.pct)}</b><span>${c.projRR!=null?'heading to '+pctS(c.projRR):'no figures yet'}</span></div></div>`;
+  }).join('');
+  return `<div class="board">${lanes}</div><div class="axis"><div></div><div class="ticks">${ticks}</div><div></div></div>
+  <div class="legend"><span><i style="width:18px;height:8px;background:var(--steel);border-radius:2px"></i>Achieved to date</span><span><i style="width:0;height:12px;border-left:2px dashed var(--ink-2)"></i>Projected month end (run rate)</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--brand)"></i>Incentive line ${thr()}%</span></div>`;
+}
+
+/* ---------- incentive engine ---------- */
+function findProject(name){
+  const k = slug(name).replace(/-/g,''); if(!k) return null;
+  return S.config.projects.find(p=> slug(p.name).replace(/-/g,'')===k || p.id.replace(/-/g,'')===k) || null;
+}
+const isYes = v => /^(y|yes|true|1|✓)$/i.test(String(v??'').trim());
+const isNo = v => /^(n|no|false|0|-|na|n\/a)?$/i.test(String(v??'').trim());
+function allocation(r){
+  if (!isNo(r.dedicated)){
+    const name = isYes(r.dedicated) ? r.location : r.dedicated; const p = findProject(name);
+    return {type:'Dedicated', alloc: p?[{pid:p.id,share:100}]:[], issue: p?'':`Project "${name}" not found`};
+  }
+  if (!isNo(r.shared)){
+    let parts;
+    if (isYes(r.shared) || /^all$/i.test(String(r.shared).trim())) parts = S.config.projects.map(p=>({pid:p.id,share:null}));
+    else parts = String(r.shared).split(/[,;|]+/).map(x=>x.trim()).filter(Boolean).map(x=>{
+      let p = findProject(x); if (p) return {pid:p.id, share:null};
+      const m = x.match(/^(.*?)\s*[:=(]\s*(\d+(?:\.\d+)?)\s*%?\s*\)?$/) || x.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*%$/);
+      if (m){ p = findProject(m[1]); return {pid:p?.id, share:+m[2], raw:m[1]}; }
+      return {pid:null, raw:x};
+    });
+    const bad = parts.filter(x=>!x.pid).map(x=>x.raw); parts = parts.filter(x=>x.pid);
+    const fixed = parts.filter(x=>x.share!=null).reduce((s,x)=>s+x.share,0); const open = parts.filter(x=>x.share==null);
+    const rest = Math.max(0,100-fixed); open.forEach(x=>x.share = rest/open.length);
+    const tot = parts.reduce((s,x)=>s+x.share,0); if (tot>100.01) parts.forEach(x=>x.share = x.share*100/tot);
+    return {type:'Shared', alloc:parts, issue: bad.length?('Not found: '+bad.join(', ')):''};
+  }
+  return {type:'Not tagged', alloc:[], issue:'Mark Dedicated or Shared'};
+}
+function baseOf(r){ return S.config.settings.base==='ctc' ? num(r.ctcMonth) : num(r.gross); }
+function incentiveRun(month){
+  const pf = calcPortfolio(S.config.projects.map(p=>p.id), month, 'approved');
+  const pmap = {}; pf.list.forEach(c=>pmap[c.pid]={c, earnPct:slabPct(c.pct), projPct:slabPct(c.projRR)});
+  const ov = (S.inc[month]||{}).overrides||{};
+  const rows = S.staff.map(r=>{
+    const a = allocation(r); const base = baseOf(r);
+    let earned=0, projected=0; const lines = a.alloc.map(x=>{ const q=pmap[x.pid]; const e = base*x.share/100*(q?q.earnPct:0)/100; const pr = base*x.share/100*(q?q.projPct:0)/100; earned+=e; projected+=pr; return {...x, e, pr}; });
+    const o = ov[r.id]; const final = (o && o.amt!=null && o.amt!=='') ? num(o.amt) : earned;
+    return {...r, ...a, base, lines, earned, projected, override:o, final};
+  });
+  const byProject = {}; S.config.projects.forEach(p=>byProject[p.id]={earned:0,projected:0,heads:0,fte:0});
+  rows.forEach(r=>r.lines.forEach(l=>{ const b=byProject[l.pid]; if(!b) return; b.earned+=l.e; b.projected+=l.pr; b.heads++; b.fte+=l.share/100; }));
+  return {pf, pmap, rows, byProject, total: rows.reduce((s,r)=>s+r.final,0), projected: rows.reduce((s,r)=>s+r.projected,0)};
+}
+
+/* ---------- CHRO / variable-pay interpretation ---------- */
+function insightsFor(pf, opts={}){
+  const out=[]; const T=thr(); const unit=S.config.settings.unit; const L=pf.list;
+  const act = L.filter(c=>c.last);
+  if (!act.length){ out.push({tone:'info', h:'Nothing to read yet', p:'No figures have come through for this month in the current view.', a:'Ask project representatives to submit Week 1, and cluster heads to approve it before the meeting.'}); return out; }
+  const wkN = Math.max(...act.map(c=>c.last.n));
+  // portfolio headline
+  const gap = pf.projRR!=null ? pf.projRR - T : null;
+  out.push({tone: pf.projRR>=T?'good':pf.projRR>=T*0.85?'watch':'risk',
+    h:`${opts.label||'Portfolio'} at ${pctS(pf.pct)} after Week ${wkN}, heading to ${pctS(pf.projRR)}`,
+    p:`At the current run rate ${opts.label?'the project':'the portfolio'} closes ${gap>=0?pctS(gap).replace('%',' points')+' above':pctS(-gap).replace('%',' points')+' below'} the ${T}% incentive line. The month is ${Math.round(Math.max(...act.map(c=>c.daysDone))/act[0].mi.dim*100)}% elapsed; achievement is ${pctS(pf.pct)} of target.`,
+    a: gap>=0 ? 'Hold pace; use the meeting to push qualified projects towards 100% rather than coasting at the line.' : 'Spend the meeting on the at-risk projects below; the portfolio will not qualify on current momentum.'});
+  // classification
+  const qualified = act.filter(c=>c.pct>=T), onCourse = act.filter(c=>c.pct<T && c.projRR>=T);
+  const recover = act.filter(c=>c.projRR<T && c.remWeeks>0 && c.perWeek80!=null && c.avgWeekA>0 && c.perWeek80 <= c.avgWeekA*1.5);
+  const risk = act.filter(c=>c.projRR<T && !recover.includes(c) && c.pct<T);
+  if (qualified.length) out.push({tone:'good', h:`Already above the line: ${qualified.map(c=>c.p.name).join(', ')}`, p:qualified.map(c=>`${c.p.name} ${pctS(c.pct)}`).join(' · ')+'. On the figures shown, these teams are already past the incentive line for the month.', a:'Recognise publicly in the meeting. Watch for teams easing off once the line is crossed; set a stretch at 100%.'});
+  if (onCourse.length) out.push({tone:'good', h:`On course to qualify: ${onCourse.map(c=>c.p.name).join(', ')}`, p:onCourse.map(c=>`${c.p.name} at ${pctS(c.pct)}, projected ${pctS(c.projRR)}`).join('; ')+'.', a:'No intervention needed. Confirm next week\'s plan covers the remaining '+onCourse.map(c=>`${fmt(c.need80)} ${unit} (${c.p.name})`).join(', ')+'.'});
+  recover.forEach(c=> out.push({tone:'watch', h:`${c.p.name} is recoverable`, p:`Projected ${pctS(c.projRR)}. To reach ${T}% it needs ${fmt(c.perWeek80)} ${unit} a week for the remaining ${c.remWeeks} week${c.remWeeks>1?'s':''}, against an average of ${fmt(c.avgWeekA)} so far (${Math.round(c.perWeek80/c.avgWeekA*100)}% of current pace).`, a:`Ask ${cluster(c.p.clusterId)?.name||'the project head'} for a building-wise recovery plan with named owners before the next review.`}));
+  risk.forEach(c=>{
+    const why = c.remWeeks===0 ? 'The month is fully reported.' : c.avgWeekA>0 ? `It would need ${fmt(c.perWeek80)} ${unit} a week, ${Math.round(c.perWeek80/c.avgWeekA*100)}% of its current weekly pace.` : 'No achievement has been recorded yet.';
+    out.push({tone:'risk', h:`${c.p.name} is unlikely to qualify this month`, p:`At ${pctS(c.pct)} with a projection of ${pctS(c.projRR)}. ${why}`, a: c.remWeeks===0 ? 'Close the month honestly and review root cause (approvals, material, manpower, labour) rather than re-cutting the target.' : 'Escalate in this meeting: fix the constraint (material, contractor manpower, approvals) or agree now that this month is a miss and protect next month\'s plan.'});
+  });
+  // cliff effect
+  const cliff = act.filter(c=>c.projRR!=null && c.projRR>=T-10 && c.projRR<T);
+  if (cliff.length) out.push({tone:'watch', h:'Incentive cliff in play', p:`${cliff.map(c=>c.p.name).join(', ')} ${cliff.length>1?'are':'is'} projected within 10 points of ${T}%. Under a single ${T}% gate, ${T-1}% pays nothing and ${T}% pays the full ${slabPct(T)}%, which invites end-of-month bunching and pressure on figures.`, a:'Verify the last week\'s figures with extra care. For the next cycle consider a graded slab (for example 70–79% paying a partial rate) in Settings.'});
+  // momentum
+  act.forEach(c=>{ if (c.lastIdx<1) return; const now=c.last.weekPct, prev=c.prevWeekPct; if (now==null||prev==null) return;
+    if (now < prev-20) out.push({tone:'watch', h:`${c.p.name} slowed in Week ${c.last.n}`, p:`Weekly delivery fell from ${pctS(prev)} to ${pctS(now)} of the week's target. The run-rate projection still carries earlier weeks; the momentum view puts month end at ${pctS(c.projMom)}.`, a:'Ask what changed this week before it becomes the trend.'});
+    else if (now > prev+20) out.push({tone:'good', h:`${c.p.name} accelerated in Week ${c.last.n}`, p:`Weekly delivery rose from ${pctS(prev)} to ${pctS(now)} of target. If this pace holds, month end is ${pctS(c.projMom)}.`, a:'Find out what unlocked it and whether it can be repeated on other sites.'}); });
+  // concentration + stalled buildings + infra lag
+  act.forEach(c=>{
+    const real = c.blds.filter(b=>b.target>0);
+    const top = real.slice().sort((a,b)=>b.share-a.share)[0];
+    if (real.length>=3 && top && top.share>=55) out.push({tone:'watch', h:`${c.p.name} depends on ${top.name}`, p:`${top.name} delivered ${Math.round(top.share)}% of the project's achievement so far. The other ${real.length-1} buildings are carrying little of the load.`, a:'Check whether the other buildings are blocked or simply de-prioritised.'});
+    const stalled = real.filter(b=>b.mtd===0 && c.lastIdx>=1);
+    if (stalled.length) out.push({tone:'risk', h:`${c.p.name}: ${stalled.map(b=>b.name).join(', ')} at zero`, p:`${stalled.length>1?'These buildings have':'This building has'} a target of ${fmt(stalled.reduce((s,b)=>s+b.target,0))} ${unit} and no achievement after ${c.lastIdx+1} weeks.`, a:'Confirm whether the target is still valid; if the site is on hold, move the target so the project is measured fairly.'});
+    const infra = real.filter(b=>b.kind==='Infra'), bl = real.filter(b=>b.kind!=='Infra');
+    if (infra.length && bl.length){ const ip = infra.reduce((s,b)=>s+b.mtd,0)/infra.reduce((s,b)=>s+b.target,0)*100; const bp = bl.reduce((s,b)=>s+b.mtd,0)/bl.reduce((s,b)=>s+b.target,0)*100;
+      if (isFinite(ip)&&isFinite(bp)&&bp-ip>=25) out.push({tone:'watch', h:`${c.p.name}: infra trailing the buildings`, p:`Infra is at ${pctS(ip)} against ${pctS(bp)} for buildings. Infra lag usually shows up later as possession and OC delays.`, a:'Give infra its own owner and weekly line item in the review.'}); }
+    if (c.pct!=null && c.pct>=125) out.push({tone:'info', h:`${c.p.name} is far above target`, p:`${pctS(c.pct)} of the month's target. Sustained over-achievement of this size usually means the target was set low.`, a:'Review how next month\'s target is set so the incentive rewards stretch, not a soft plan.'});
+    const wt = c.weeks.map(w=>w.t); const tot = wt.reduce((a,b)=>a+b,0);
+    if (tot>0 && wt[3]/tot>0.4) out.push({tone:'watch', h:`${c.p.name}'s plan is back-loaded`, p:`${Math.round(wt[3]/tot*100)}% of the weekly targets sit in Week 4. Back-loaded plans rarely recover if Week 4 slips.`, a:'Ask for a flatter weekly plan next month.'});
+  });
+  // approvals
+  if (opts.pending){ const pend = pendingFor(S.user); if (pend.length){ const oldest = pend.reduce((m,x)=>Math.min(m,x.at?new Date(x.at).getTime():Date.now()),Date.now()); const days = Math.floor((Date.now()-oldest)/864e5);
+    out.push({tone:'watch', h:`${pend.length} weekly submission${pend.length>1?'s':''} awaiting approval`, p:`Oldest waiting ${days} day${days===1?'':'s'}. Unapproved figures are excluded from this dashboard and from incentive.`, a:'Cluster heads should approve or return before the meeting starts.'}); } }
+  // incentive exposure
+  if (opts.incentive && S.staff.length){ const run = incentiveRun(pf.list[0].month); 
+    const atStake = recover.concat(cliff.filter(c=>!recover.includes(c))).reduce((s,c)=>s+ (run.rows.reduce((t,r)=>t+r.lines.filter(l=>l.pid===c.pid).reduce((u,l)=>u+r.base*l.share/100*slabPct(T)/100,0),0)),0);
+    out.push({tone:'info', h:`Incentive outlook: ${rs(run.total)} earned, ${rs(run.projected)} projected`, p:`Earned uses approved figures to date; projected assumes each project closes at its run rate.${atStake>0?` A further ${rs(atStake)} depends on the recoverable and near-line projects.`:''}`, a:'Use the at-stake figure when asking project teams for their recovery commitment.'}); }
+  return out;
+}
+function insightsHTML(list){ return list.map(i=>`<div class="ins ${i.tone}"><div class="bar"></div><div><h3>${esc(i.h)}</h3><p>${esc(i.p)}</p>${i.a?`<div class="act"><b>Action:</b> ${esc(i.a)}</div>`:''}</div></div>`).join(''); }
+/* ---------- ui helpers ---------- */
+const $ = s => document.querySelector(s);
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+function ask(title, body, ok='Confirm', danger=false){
+  return new Promise(res=>{ const d=$('#dlg'); d.innerHTML=`<h2>${esc(title)}</h2><p class="muted" style="margin:10px 0 20px">${esc(body)}</p><div class="row" style="justify-content:flex-end"><button class="btn" value="0">Cancel</button><button class="btn ${danger?'danger':'primary'}" value="1">${esc(ok)}</button></div>`;
+    d.querySelectorAll('button').forEach(b=>b.onclick=()=>{ d.close(); res(b.value==='1'); }); d.oncancel=()=>res(false); d.showModal(); });
+}
+const logoHTML = () => LOGO_SRC ? `<div class="logo"><img src="${LOGO_SRC}" alt="Mangalam Landmarks"></div>` : `<div class="logo" aria-label="Mangalam Landmarks"><b>mangalam<i></i></b><span>LANDMARKS</span></div>`;
+function monthsAvailable(){
+  const set = new Set(fyMonths(todayMonth())); Object.values(S.entries).forEach(e=>e.month&&set.add(e.month)); return [...set].sort();
+}
+async function saveConfig(msg){ try{ await Store.set('app','config',S.config); if(msg) toast(msg); }catch(e){ toast('Could not save: '+e.message); } }
+async function saveEntry(e){ S.entries[entryId(e.month,e.projectId)] = e; await Store.set('entries', entryId(e.month,e.projectId), e); }
+async function saveFile(filename, blob){
+  let dl=null; try{ if (window.claude?.use) dl = await Promise.race([window.claude.use('downloads'), new Promise(r=>setTimeout(()=>r(null),3000))]); }catch(e){}
+  if (dl){ try{ await dl.save({filename, data:blob}); return; }catch(e){ if (e && e.code==='declined') return; } }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+function wbBlob(wb){ const out = XLSX.write(wb,{bookType:'xlsx',type:'array'}); return new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }
+
+/* ---------- login ---------- */
+function renderLogin(err){
+  const c=S.config;
+  $('#app').innerHTML = `<div class="login-wrap"><form class="login" id="loginForm">${logoHTML()}
+    <h1>Weekly achievement review</h1><p class="muted">Targets, achievement, approvals and project incentive, in one place.</p>
+    <div class="field"><label class="lbl" for="lu">Login</label><select class="in" id="lu" style="width:100%">
+      <optgroup label="Leadership"><option value="ceo|ceo">CEO</option></optgroup>
+      <optgroup label="Cluster heads">${c.clusters.map(k=>`<option value="cluster|${k.id}">${esc(k.name)}</option>`).join('')}</optgroup>
+      <optgroup label="Projects">${c.projects.map(p=>`<option value="project|${p.id}">${esc(p.name)}</option>`).join('')}</optgroup>
+    </select></div>
+    <div class="field"><label class="lbl" for="lp">Password</label><input class="in" id="lp" type="password" autocomplete="current-password" style="width:100%"></div>
+    ${err?`<p style="color:var(--risk);margin-top:12px;font-size:14px">${esc(err)}</p>`:''}
+    <button class="btn primary" style="width:100%;margin-top:20px;padding:11px">Sign in</button>
+    <p class="faint small" style="margin-top:16px">${Store.mode==='local'?'Demo mode: figures are saved in this browser only.':'Figures are shared across all logins.'}</p></form></div>`;
+  $('#loginForm').onsubmit = ev=>{ ev.preventDefault(); const [role,id]=$('#lu').value.split('|'); const pw=$('#lp').value;
+    const rec = role==='ceo'?c.ceo : role==='cluster'?cluster(id) : proj(id);
+    if (!rec || String(rec.password)!==pw) return renderLogin('That password does not match the selected login.');
+    S.user = {role,id,name: role==='ceo'?'CEO':rec.name}; try{ sessionStorage.setItem('mip:user',JSON.stringify({role,id})); }catch(e){}
+    S.view = role==='project'?'entry':role==='cluster'?'approvals':'dashboard'; S.projectSel = role==='project'?id:(visibleProjects()[0]?.id);
+    render(); };
+}
+
+/* ---------- shell ---------- */
+const NAV = {
+  ceo:[['dashboard','Dashboard'],['meeting','Weekly meeting'],['project','Project deep dive'],['approvals','Approvals'],['entry','Enter figures'],['incentives','Incentives'],['staff','Staff master'],['masters','Projects & buildings'],['settings','Settings']],
+  cluster:[['approvals','Approvals'],['dashboard','My projects'],['project','Project deep dive'],['meeting','Weekly meeting']],
+  project:[['entry','Weekly entry'],['project','My progress']]
+};
+function render(){
+  if (!S.user) return renderLogin();
+  const pend = S.user.role!=='project' ? pendingFor(S.user).length : 0;
+  const nav = NAV[S.user.role].map(([k,l])=>`<button class="${S.view===k?'on':''}" data-act="nav" data-v="${k}">${l}${k==='approvals'&&pend?`<span class="badge">${pend}</span>`:''}</button>`).join('');
+  const role = S.user.role==='ceo'?'All projects · full control': S.user.role==='cluster'?'Cluster head · approves figures':'Project login · enters figures';
+  const focus = document.activeElement && document.activeElement.id; const sy = window.scrollY;
+  $('#app').innerHTML = `<div class="shell"><aside class="side">${logoHTML()}<nav class="nav" aria-label="Main">${nav}</nav>
+    <div class="who"><strong>${esc(S.user.name)}</strong><span class="muted">${role}</span><br><button class="btn ghost sm" style="padding-left:0;margin-top:6px" data-act="logout">Sign out</button></div></aside>
+    <main class="main" id="main">${view()}</main></div>`;
+  if (focus && document.getElementById(focus)) document.getElementById(focus).focus();
+  window.scrollTo(0,sy);
+  if (S.view==='entry') updateEntryCalc();
+}
+function topbar(title, sub, extra=''){
+  const months = monthsAvailable();
+  const showToggle = S.user.role!=='project' && ['dashboard','project'].includes(S.view);
+  return `<div class="topbar"><div><h1>${title}</h1>${sub?`<p class="muted" style="margin-top:4px">${sub}</p>`:''}</div>
+  <div class="ctx">${extra}${showToggle?`<div class="seg" role="group" aria-label="Figures shown"><button class="${S.approvedOnly?'on':''}" data-act="appr" data-v="1">Approved</button><button class="${!S.approvedOnly?'on':''}" data-act="appr" data-v="0">Incl. pending</button></div>`:''}
+  <select class="in" data-chg="month" aria-label="Month">${months.map(m=>`<option value="${m}" ${m===S.month?'selected':''}>${monthInfo(m).label}</option>`).join('')}</select>
+  <button class="btn" data-act="refresh" title="Reload figures">Refresh</button></div></div>`;
+}
+function view(){
+  switch(S.view){
+    case 'dashboard': return vDashboard();
+    case 'project': return vProject();
+    case 'entry': return vEntry();
+    case 'approvals': return vApprovals();
+    case 'incentives': return vIncentives();
+    case 'staff': return vStaff();
+    case 'masters': return vMasters();
+    case 'settings': return vSettings();
+    default: return vDashboard();
+  }
+}
+const kpi = (l,v,s='') => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+
+/* ---------- dashboard ---------- */
+function vDashboard(){
+  const pids = visibleProjects().map(p=>p.id); const mode=viewMode(); const pf = calcPortfolio(pids, S.month, mode); const mi=monthInfo(S.month); const U=S.config.settings.unit;
+  const above = pf.list.filter(c=>c.pct>=thr()).length, headed = pf.list.filter(c=>c.projRR>=thr()).length;
+  const run = S.user.role==='ceo' && S.staff.length ? incentiveRun(S.month) : null;
+  const sub = `${mi.label} · ${fyLabel(S.month)} · ${mode==='approved'?'approved figures only':'approved and pending figures'}${pf.lastIdx>=0?` · reported through Week ${pf.lastIdx+1}`:''}`;
+  let h = topbar(S.user.role==='ceo'?'Portfolio dashboard':'My projects', sub, `<button class="btn primary" data-act="meet">Start weekly meeting</button>`);
+  h += `<div class="kpis">${kpi('Month target ('+esc(U)+')',fmt(pf.target))}${kpi('Achieved to date',fmt(pf.mtd))}${kpi('Achieved %',pctS(pf.pct))}${kpi('Projected month end',pctS(pf.projRR),'run rate')}${kpi('Above the line',above+' / '+pf.list.length,headed+' heading there')}${run?kpi('Incentive earned',rs(run.total),rs(run.projected)+' projected'):''}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>Where each project stands against the incentive line</h2><span class="muted small">Red dot marks ${thr()}%: at or above it, the project team earns ${slabPct(thr())}% incentive</span></div>${board(pf)}</section>`;
+  const series = pf.list.filter(c=>c.last).map((c,i)=>({name:c.p.name,color:PCOL[S.config.projects.indexOf(c.p)%PCOL.length],points:[0,...c.weeks.map(w=>w.cumPct)],proj:c.projRR}));
+  h += `<div class="grid2" style="margin-top:18px"><section class="panel"><div class="panel-head"><h2>Cumulative achievement, week by week</h2><span class="muted small">Dashed: projected month end</span></div>${series.length?lineChart({series,labels:['Start','W1','W2','W3','W4'],ref:thr()}):emptyHTML()}</section>
+    <section class="panel"><div class="panel-head"><h2>What this means</h2><span class="muted small">CHRO read</span></div>${insightsHTML(insightsFor(pf,{pending:true,incentive:S.user.role==='ceo'}))}</section></div>`;
+  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Monthly summary by building</h2><button class="btn sm" data-act="exportSummary">Download as Excel</button></div>${summaryTable(pf)}</section>`;
+  h += `<div class="grid2" style="margin-top:18px"><section class="panel"><div class="panel-head"><h2>Projected month end after each week</h2></div>${trajectoryTable(pf)}<p class="faint small" style="margin-top:10px">Run rate: achievement to date ÷ days reported × days in month. Momentum: to date + the latest week's daily pace for the remaining days.</p></section>
+    <section class="panel"><div class="panel-head"><h2>Weekly delivery against weekly target</h2></div>${heatmap(pf)}</section></div>`;
+  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>${fyLabel(S.month)} month-on-month</h2><span class="muted small">Approved figures</span></div>${fyTrend(pids)}</section>`;
+  return h;
+}
+const emptyHTML = (t='No figures yet', b='Figures appear here once weekly entries are submitted and approved.') => `<div class="empty"><h3>${t}</h3><p>${b}</p></div>`;
+function summaryTable(pf){
+  const U=S.config.settings.unit; let rows=''; let sr=0;
+  pf.list.forEach(c=>{
+    c.blds.forEach((b,i)=>{ sr++; rows += `<tr class="${i===0?'proj-row':''}"><td>${sr}</td><td>${i===0?esc(c.p.name):''}</td><td>${esc(b.name)}${b.kind==='Infra'?'':''}</td><td class="num">${fmt(b.target)}</td>${b.weeks.map(w=>`<td class="num">${w.a==null?'<span class="faint">–</span>':fmt(w.a)}</td>`).join('')}<td class="num"><b>${fmt(b.mtd)}</b></td><td class="num">${pctChip(b.pct)}</td></tr>`; });
+    rows += `<tr class="total"><td></td><td></td><td>Total ${esc(c.p.name)}</td><td class="num">${fmt(c.target)}</td>${c.weeks.map(w=>`<td class="num">${w.a==null?'–':fmt(w.a)}</td>`).join('')}<td class="num">${fmt(c.mtd)}</td><td class="num">${pctChip(c.pct)}</td></tr>`;
+  });
+  rows += `<tr class="grand"><td></td><td></td><td>Grand total</td><td class="num">${fmt(pf.target)}</td>${pf.weeks.map(w=>`<td class="num">${w.a==null?'–':fmt(w.a)}</td>`).join('')}<td class="num">${fmt(pf.mtd)}</td><td class="num">${pctS(pf.pct)}</td></tr>`;
+  return `<div class="tbl-wrap"><table><thead><tr><th>Sr</th><th>Project</th><th>Building</th><th class="num">${monthInfo(S.month).label.split(' ')[0]} target</th><th class="num">W1</th><th class="num">W2</th><th class="num">W3</th><th class="num">W4</th><th class="num">Achieved</th><th class="num">% achieved</th></tr></thead><tbody>${rows}</tbody></table></div><p class="faint small" style="margin-top:8px">Figures in ${esc(U)}.</p>`;
+}
+function trajectoryTable(pf){
+  const rows = pf.list.map(c=>`<tr><td><b>${esc(c.p.name)}</b></td>${c.weeks.map(w=>`<td class="num">${w.projRR==null?'<span class="faint">–</span>':pctChip(w.projRR)}</td>`).join('')}<td class="num">${c.projMom==null?'–':pctChip(c.projMom)}</td><td class="num">${c.perWeek80==null?'–':c.need80<=0?'<span class="pct good">Done</span>':fmt(c.perWeek80)}</td></tr>`).join('');
+  return `<div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">After W1</th><th class="num">After W2</th><th class="num">After W3</th><th class="num">After W4</th><th class="num">Momentum</th><th class="num">Needed / week for ${thr()}%</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function heatmap(pf){
+  const rows = pf.list.map(c=>c.blds.filter(b=>b.target>0||b.mtd>0).map((b,i)=>`<tr><td>${i===0?`<b>${esc(c.p.name)}</b>`:''}</td><td>${esc(b.name)}</td>${b.weeks.map(w=>{ const p = w.a!=null&&w.t>0 ? w.a/w.t*100 : null; return `<td class="h">${p==null?'<span class="faint">–</span>':`<span class="pct ${tone(p)}">${Math.round(p)}%</span>`}</td>`; }).join('')}</tr>`).join('')).join('');
+  return rows ? `<div class="tbl-wrap heat"><table><thead><tr><th>Project</th><th>Building</th><th>W1</th><th>W2</th><th>W3</th><th>W4</th></tr></thead><tbody>${rows}</tbody></table></div>` : emptyHTML('No targets set','Project representatives set month targets on the weekly entry screen.');
+}
+function fyTrend(pids){
+  const ms = fyMonths(S.month); const groups = ms.map(m=>{ const pf = calcPortfolio(pids,m,'approved'); return {label:monthInfo(m).short, values:[pf.pct]}; });
+  if (!groups.some(g=>g.values[0]!=null)) return emptyHTML('No approved months yet','Each month appears here once its weekly figures are approved.');
+  return barChart({groups, pctMode:true, ref:thr(), colors:[v=>v>=thr()?'var(--good)':'var(--steel)']});
+}
+
+/* ---------- project deep dive ---------- */
+function vProject(){
+  const vis = visibleProjects(); if(!vis.length) return topbar('Project deep dive')+emptyHTML('No projects','');
+  if (!vis.find(p=>p.id===S.projectSel)) S.projectSel = vis[0].id;
+  const c = calcProject(S.projectSel, S.month, viewMode()); const U=S.config.settings.unit;
+  const sel = vis.length>1 ? `<select class="in" data-chg="projectSel" aria-label="Project">${vis.map(p=>`<option value="${p.id}" ${p.id===S.projectSel?'selected':''}>${esc(p.name)}</option>`).join('')}</select>` : '';
+  const cl = cluster(c.p.clusterId);
+  let h = topbar(esc(c.p.name), `${monthInfo(S.month).label} · Cluster head: ${esc(cl?cl.name:'CEO (no cluster head assigned)')} · ${c.p.buildings.length} building${c.p.buildings.length===1?'':'s'}`, sel);
+  h += projectBody(c);
+  return h;
+}
+function projectBody(c, compact=false){
+  const U=S.config.settings.unit; const pf = {list:[c], pct:c.pct, projRR:c.projRR, lastIdx:c.lastIdx};
+  let h = `<div class="kpis">${kpi('Month target ('+esc(U)+')',fmt(c.target))}${kpi('Achieved to date',fmt(c.mtd))}${kpi('Achieved %',`<span style="color:var(--${tone(c.pct)==='none'?'ink':tone(c.pct)})">${pctS(c.pct)}</span>`)}${kpi('Projected (run rate)',pctS(c.projRR))}${kpi('Projected (momentum)',pctS(c.projMom))}${kpi('Needed / week for '+thr()+'%', c.perWeek80==null?'–':c.need80<=0?'Achieved':fmt(c.perWeek80), c.remWeeks+' week'+(c.remWeeks===1?'':'s')+' left')}</div>`;
+  const groups = c.weeks.map(w=>({label:'W'+w.n+' ('+w.start+'–'+w.end+')', values:[w.t, w.a]}));
+  h += `<div class="grid2"><section class="panel"><div class="panel-head"><h2>Weekly target and achievement</h2><span class="legend" style="margin:0"><span><i style="width:10px;height:10px;background:var(--steel-2)"></i>Target</span><span><i style="width:10px;height:10px;background:var(--steel)"></i>Achieved</span></span></div>${c.target>0?barChart({groups}):emptyHTML('No target set','')}
+    ${c.last?lineChart({series:[{name:c.p.name,color:'var(--steel)',points:[0,...c.weeks.map(w=>w.cumPct)],proj:c.projRR}],labels:['Start','W1','W2','W3','W4'],ref:thr(),height:230}):''}</section>
+    <section class="panel"><div class="panel-head"><h2>What this means</h2></div>${insightsHTML(insightsFor(pf,{label:c.p.name}))}</section></div>`;
+  if (!compact){
+    const rows = c.blds.map(b=>`<tr><td><b>${esc(b.name)}</b> <span class="kind">${b.kind==='Infra'&&!/infra/i.test(b.name)?'Infra':''}</span></td><td class="num">${fmt(b.target)}</td>${b.weeks.map(w=>`<td class="num">${w.a==null?'<span class="faint">–</span>':fmt(w.a)}<div class="faint small">of ${fmt(w.t)}</div></td>`).join('')}<td class="num"><b>${fmt(b.mtd)}</b></td><td class="num">${pctChip(b.pct)}</td><td class="num">${c.mtd>0?Math.round(b.share)+'%':'–'}</td></tr>`).join('');
+    h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Buildings and infra</h2><span class="muted small">Weekly achieved of weekly target</span></div><div class="tbl-wrap"><table><thead><tr><th>Building</th><th class="num">Month target</th><th class="num">W1</th><th class="num">W2</th><th class="num">W3</th><th class="num">W4</th><th class="num">Achieved</th><th class="num">%</th><th class="num">Share of project</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="row" style="margin-top:14px">${c.weeks.map(w=>`<span class="small">W${w.n}: <span class="chip ${w.hasData?w.status:'empty'}">${w.hasData?statusLabel(w.status):'Not entered'}</span></span>`).join('')}</div></section>`;
+  }
+  return h;
+}
+const statusLabel = s => ({draft:'Draft',submitted:'Awaiting approval',approved:'Approved',returned:'Returned'}[s]||s);
+/* ---------- weekly entry ---------- */
+function entryLocks(e, n){
+  const W = wk(e,n); const ceo = S.user.role==='ceo';
+  const weekLocked = !ceo && (W.status==='submitted'||W.status==='approved');
+  const anyApproved = Object.values(e.weeks||{}).some(w=>w.status==='approved');
+  return {W, weekLocked, targetLocked: !ceo && anyApproved};
+}
+function vEntry(){
+  const vis = visibleProjects(); if (!vis.length) return topbar('Weekly entry')+emptyHTML('No project','');
+  if (!vis.find(p=>p.id===S.projectSel)) S.projectSel = vis[0].id;
+  const p = proj(S.projectSel); const e = getEntry(S.month,p.id); const mi = monthInfo(S.month); const n=S.week; const U=S.config.settings.unit;
+  const {W, weekLocked, targetLocked} = entryLocks(e,n);
+  const sel = vis.length>1 ? `<select class="in" data-chg="projectSel" aria-label="Project">${vis.map(x=>`<option value="${x.id}" ${x.id===p.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>` : '';
+  let h = topbar(`${esc(p.name)} · weekly figures`, `Enter the month target once, then the week's target and achievement for each building. Percentages calculate on their own. Figures in ${esc(U)}.`, sel);
+  h += `<div class="weeks" role="tablist">${mi.weeks.map(w=>{ const s=wk(e,w.n); const has=Object.keys(s.vals||{}).length; return `<button role="tab" aria-selected="${w.n===n}" class="${w.n===n?'on':''}" data-act="week" data-v="${w.n}"><b>Week ${w.n}</b><span>${w.start}–${w.end} ${MN[mi.m-1]}</span><br><span class="chip ${has?s.status:'empty'}" style="margin-top:4px">${has?statusLabel(s.status):'Not entered'}</span></button>`; }).join('')}</div>`;
+  let banner='';
+  if (W.status==='returned') banner = `<div class="banner risk"><b>Returned by ${esc(W.returnedBy||'approver')}:</b> ${esc(W.note||'No comment')}. Correct and submit again.</div>`;
+  else if (W.status==='submitted') banner = `<div class="banner">Submitted and waiting for ${esc(cluster(p.clusterId)?.name||'CEO')} to approve.${S.user.role==='ceo'?' You can still edit as CEO.':''}</div>`;
+  else if (W.status==='approved') banner = `<div class="banner good">Approved by ${esc(W.approvedBy||'')}${W.approvedAt?' on '+new Date(W.approvedAt).toLocaleDateString('en-IN'):''}. These figures now show on the CEO dashboard.${S.user.role==='ceo'?' You can still edit as CEO.':''}</div>`;
+  if (targetLocked && !weekLocked) banner += `<div class="banner watch">Month targets are locked because a week is already approved. Ask the CEO to change them.</div>`;
+  const rows = p.buildings.map(b=>{ const v=(W.vals||{})[b.id]||{}; const mt = e.targets?.[b.id] ?? ''; const hasT = v.t!=null && v.t!=='';
+    return `<tr data-row="${b.id}"><td><b>${esc(b.name)}</b> <span class="kind">${b.kind==='Infra'&&!/infra/i.test(b.name)?'Infra':''}</span></td>
+      <td><input class="cell" inputmode="decimal" data-in="mt" data-b="${b.id}" value="${mt}" ${targetLocked||weekLocked?'disabled':''} aria-label="${esc(b.name)} month target"></td>
+      <td><input class="cell" inputmode="decimal" data-in="t" data-b="${b.id}" value="${hasT?v.t:''}" data-auto="${hasT?0:1}" ${weekLocked?'disabled':''} aria-label="${esc(b.name)} week target"></td>
+      <td><input class="cell" inputmode="decimal" data-in="a" data-b="${b.id}" value="${v.a??''}" ${weekLocked?'disabled':''} aria-label="${esc(b.name)} week achievement"></td>
+      <td class="num" data-o="wp"></td><td class="num" data-o="mtd"></td><td class="num" data-o="mp"></td></tr>`; }).join('');
+  h += `<section class="panel" style="margin-top:16px">${banner}<div class="tbl-wrap"><table id="entryTbl"><thead><tr><th>Building</th><th class="num">${MNL[mi.m-1]} target</th><th class="num">Week ${n} target</th><th class="num">Week ${n} achieved</th><th class="num">Week %</th><th class="num">Month to date</th><th class="num">MTD %</th></tr></thead>
+    <tbody>${rows}</tbody><tfoot><tr class="total"><td>Total</td><td class="num" data-o="tmt"></td><td class="num" data-o="tt"></td><td class="num" data-o="ta"></td><td class="num" data-o="twp"></td><td class="num" data-o="tmtd"></td><td class="num" data-o="tmp"></td></tr></tfoot></table></div>
+    <p class="faint small" style="margin-top:8px">Week target fills itself as a share of the month target by days (${mi.weeks[n-1].days} of ${mi.dim}); overwrite it if the site plan differs.</p>
+    <div class="row" style="margin-top:16px"><span class="spacer"></span>
+    ${weekLocked?'':`<button class="btn" data-act="saveDraft">Save draft</button><button class="btn primary" data-act="submitWeek">${S.user.role==='ceo'?'Save and approve':'Submit for approval'}</button>`}
+    ${S.user.role==='ceo'&&W.status&&W.status!=='draft'?`<button class="btn danger" data-act="reopen">Reopen as draft</button>`:''}</div></section>`;
+  return h;
+}
+function readEntryInputs(){ const o={}; document.querySelectorAll('#entryTbl input.cell').forEach(i=>{ (o[i.dataset.b] ||= {})[i.dataset.in] = i.value.trim(); }); return o; }
+function updateEntryCalc(){
+  const tbl = $('#entryTbl'); if(!tbl) return; const mi=monthInfo(S.month); const n=S.week; const e=getEntry(S.month,S.projectSel); const w=mi.weeks[n-1];
+  let T={mt:0,t:0,a:0,mtd:0};
+  tbl.querySelectorAll('tr[data-row]').forEach(tr=>{
+    const b=tr.dataset.row; const mtI=tr.querySelector('[data-in="mt"]'), tI=tr.querySelector('[data-in="t"]'), aI=tr.querySelector('[data-in="a"]');
+    const mt=num(mtI.value); if (tI.dataset.auto==='1'){ tI.placeholder = mt? (Math.round(mt*w.days/mi.dim*100)/100).toString() : ''; }
+    const t = tI.value!=='' ? num(tI.value) : (mt*w.days/mi.dim); const a=num(aI.value);
+    let prior=0; for (let k=1;k<n;k++){ const W=wk(e,k); prior += num(W.vals?.[b]?.a); }
+    const mtd = prior + a;
+    tr.querySelector('[data-o="wp"]').innerHTML = aI.value===''?'<span class="faint">–</span>':pctChip(t>0?a/t*100:null);
+    tr.querySelector('[data-o="mtd"]').textContent = fmt(mtd);
+    tr.querySelector('[data-o="mp"]').innerHTML = pctChip(mt>0?mtd/mt*100:null);
+    T.mt+=mt; T.t+=t; T.a+=a; T.mtd+=mtd;
+  });
+  const set=(k,v)=>tbl.querySelector(`[data-o="${k}"]`).innerHTML=v;
+  set('tmt',fmt(T.mt)); set('tt',fmt(T.t)); set('ta',fmt(T.a)); set('twp',pctChip(T.t>0?T.a/T.t*100:null)); set('tmtd',fmt(T.mtd)); set('tmp',pctChip(T.mt>0?T.mtd/T.mt*100:null));
+}
+async function persistEntry(action){
+  const p=proj(S.projectSel); const e = JSON.parse(JSON.stringify(getEntry(S.month,p.id))); const n=S.week; const mi=monthInfo(S.month);
+  const vals = readEntryInputs(); const {targetLocked} = entryLocks(e,n);
+  e.targets ||= {}; e.weeks ||= {}; const W = e.weeks[n] || {vals:{},status:'draft',log:[]}; W.vals ||= {}; W.log ||= [];
+  let missing = 0;
+  Object.entries(vals).forEach(([b,v])=>{
+    if (!targetLocked && v.mt!==undefined){ if (v.mt==='') delete e.targets[b]; else e.targets[b]=num(v.mt); }
+    const mt = num(e.targets[b]); const t = v.t!=='' ? num(v.t) : Math.round(mt*mi.weeks[n-1].days/mi.dim*100)/100;
+    if (v.a==='' ) missing++;
+    W.vals[b] = {t, a: v.a===''?0:num(v.a), ...(v.t!==''?{tManual:true}:{})};
+  });
+  if (action!=='draft' && missing){ const ok = await ask('Some achievements are blank', `${missing} building${missing>1?'s have':' has'} no achievement for Week ${n}. Blank will be recorded as zero.`, 'Submit anyway'); if(!ok) return; }
+  const now = new Date().toISOString(); const by = S.user.name;
+  if (action==='draft'){ W.status = W.status==='returned'?'returned':'draft'; W.log.push({at:now,by,action:'saved draft'}); }
+  if (action==='submit'){ if (S.user.role==='ceo'){ W.status='approved'; W.approvedBy='CEO'; W.approvedAt=now; W.log.push({at:now,by,action:'entered and approved'}); } else { W.status='submitted'; W.submittedAt=now; W.submittedBy=by; W.log.push({at:now,by,action:'submitted'}); } }
+  W.log = W.log.slice(-20); e.weeks[n]=W; e.month=S.month; e.projectId=p.id; e.updatedAt=now;
+  try{ await saveEntry(e); S.dirty=false; toast(action==='draft'?'Draft saved':S.user.role==='ceo'?'Saved and approved':'Submitted for approval'); render(); }catch(err){ toast('Could not save: '+err.message); }
+}
+
+/* ---------- approvals ---------- */
+function vApprovals(){
+  const pend = pendingFor(S.user); const U=S.config.settings.unit;
+  let h = topbar('Approvals', S.user.role==='ceo'?'Every project. Projects without a cluster head come to you.':'Submissions from your projects. Approved figures go straight to the CEO dashboard.');
+  if (!pend.length) h += `<section class="panel">${emptyHTML('Nothing waiting','New weekly submissions from your projects will appear here.')}</section>`;
+  pend.forEach(x=>{
+    const p=proj(x.pid); const e=getEntry(x.month,x.pid); const W=wk(e,x.n); const mi=monthInfo(x.month);
+    let prior={}; p.buildings.forEach(b=>{ prior[b.id]=0; for(let k=1;k<x.n;k++) prior[b.id]+=num(wk(e,k).vals?.[b.id]?.a); });
+    let T={mt:0,t:0,a:0,m:0};
+    const rows = p.buildings.map(b=>{ const v=W.vals?.[b.id]||{}; const mt=num(e.targets?.[b.id]); const t=num(v.t), a=num(v.a); const m=prior[b.id]+a; T.mt+=mt;T.t+=t;T.a+=a;T.m+=m;
+      return `<tr><td>${esc(b.name)}</td><td class="num">${fmt(mt)}</td><td class="num">${fmt(t)}</td><td class="num">${fmt(a)}</td><td class="num">${pctChip(t>0?a/t*100:null)}</td><td class="num">${fmt(m)}</td><td class="num">${pctChip(mt>0?m/mt*100:null)}</td></tr>`; }).join('');
+    const key = x.month+'|'+x.pid+'|'+x.n;
+    h += `<section class="panel"><div class="panel-head"><div><h2>${esc(p.name)} · Week ${x.n}, ${mi.label}</h2><p class="muted small">Submitted by ${esc(W.submittedBy||p.name)}${W.submittedAt?' on '+new Date(W.submittedAt).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):''} · ${mi.weeks[x.n-1].start}–${mi.weeks[x.n-1].end} ${MN[mi.m-1]}</p></div><span class="chip submitted">Awaiting approval</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Building</th><th class="num">Month target</th><th class="num">Week target</th><th class="num">Week achieved</th><th class="num">Week %</th><th class="num">Month to date</th><th class="num">MTD %</th></tr></thead><tbody>${rows}
+      <tr class="total"><td>Total</td><td class="num">${fmt(T.mt)}</td><td class="num">${fmt(T.t)}</td><td class="num">${fmt(T.a)}</td><td class="num">${pctChip(T.t>0?T.a/T.t*100:null)}</td><td class="num">${fmt(T.m)}</td><td class="num">${pctChip(T.mt>0?T.m/T.mt*100:null)}</td></tr></tbody></table></div>
+      <div class="row" style="margin-top:14px"><input class="in" style="flex:1;min-width:220px" id="note-${slug(key)}" placeholder="Comment (required when returning)"><button class="btn danger" data-act="decide" data-k="${key}" data-d="returned">Return for correction</button><button class="btn good" data-act="decide" data-k="${key}" data-d="approved">Approve</button></div></section>`;
+  });
+  // recent decisions
+  const rec=[]; Object.values(S.entries).forEach(e=>{ const p=proj(e.projectId); if(!p) return; if (S.user.role==='cluster' && p.clusterId!==S.user.id) return; Object.entries(e.weeks||{}).forEach(([n,W])=>{ if (W.status==='approved'||W.status==='returned') rec.push({p,e,n,W,at:W.approvedAt||W.returnedAt||''}); }); });
+  rec.sort((a,b)=>b.at.localeCompare(a.at));
+  if (rec.length) h += `<section class="panel"><div class="panel-head"><h2>Recently decided</h2></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th>Week</th><th>Decision</th><th>By</th><th>When</th><th>Comment</th></tr></thead><tbody>${rec.slice(0,12).map(r=>`<tr><td>${esc(r.p.name)}</td><td>W${r.n} · ${monthInfo(r.e.month).short}</td><td><span class="chip ${r.W.status}">${statusLabel(r.W.status)}</span></td><td>${esc(r.W.approvedBy||r.W.returnedBy||'')}</td><td>${r.at?new Date(r.at).toLocaleDateString('en-IN'):''}</td><td class="muted">${esc(r.W.note||'')}</td></tr>`).join('')}</tbody></table></div></section>`;
+  return h;
+}
+async function decide(key, d){
+  const [month,pid,n] = key.split('|'); const note = ($('#note-'+slug(key))||{}).value?.trim()||'';
+  if (d==='returned' && !note){ toast('Add a comment so the project knows what to correct'); $('#note-'+slug(key))?.focus(); return; }
+  const e = JSON.parse(JSON.stringify(getEntry(month,pid))); const W=e.weeks[n]; const now=new Date().toISOString(); W.log ||= [];
+  W.status=d; W.note=note;
+  if (d==='approved'){ W.approvedBy=S.user.name; W.approvedAt=now; } else { W.returnedBy=S.user.name; W.returnedAt=now; }
+  W.log.push({at:now,by:S.user.name,action:d,note}); W.log=W.log.slice(-20);
+  try{ await saveEntry(e); toast(d==='approved'?'Approved':'Returned to project'); render(); }catch(err){ toast('Could not save: '+err.message); }
+}
+
+/* ---------- incentives ---------- */
+function vIncentives(){
+  const U=S.config.settings.unit; const st=S.config.settings;
+  let h = topbar('Project incentive', `${monthInfo(S.month).label} · slab: ${st.slabs.slice().sort((a,b)=>a.min-b.min).map(s=>`${s.min}%+ pays ${s.pct}%`).join(', ')} of monthly ${st.base==='ctc'?'CTC':'gross'} · approved figures only`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download register</button>`);
+  const run = incentiveRun(S.month);
+  const prow = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; return `<tr><td><b>${esc(c.p.name)}</b></td><td class="num">${fmt(c.target)}</td><td class="num">${fmt(c.mtd)}</td><td class="num">${pctChip(c.pct)}</td><td class="num">${q.earnPct?`<span class="pct good">${q.earnPct}%</span>`:'<span class="faint">Not yet</span>'}</td><td class="num">${pctChip(c.projRR)}</td><td class="num">${b.heads} <span class="faint">(${(Math.round(b.fte*10)/10)} FTE)</span></td><td class="num"><b>${rs(b.earned)}</b></td><td class="num">${rs(b.projected)}</td></tr>`; }).join('');
+  h += `<div class="kpis">${kpi('Incentive earned',rs(run.total),'after overrides')}${kpi('Projected at run rate',rs(run.projected))}${kpi('People eligible',run.rows.filter(r=>r.final>0).length+' / '+run.rows.length)}${kpi('Projects qualifying',run.pf.list.filter(c=>run.pmap[c.pid].earnPct>0).length+' / '+run.pf.list.length)}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>Project qualification</h2><span class="muted small">Dedicated staff earn on their project; shared staff earn on each project in proportion to their share</span></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Target</th><th class="num">Achieved</th><th class="num">%</th><th class="num">Incentive rate</th><th class="num">Projected %</th><th class="num">People</th><th class="num">Earned</th><th class="num">Projected</th></tr></thead><tbody>${prow}</tbody></table></div></section>`;
+  if (!S.staff.length){ h += `<section class="panel">${emptyHTML('No staff loaded yet','Go to Staff master, download the template, fill it and upload it. Incentive is then calculated for every person automatically.')}<div class="row" style="justify-content:center"><button class="btn primary" data-act="nav" data-v="staff">Open staff master</button></div></section>`; return h; }
+  const groups = [['Dedicated','Dedicated project staff'],['Shared','Shared resources'],['Not tagged','Not tagged']];
+  groups.forEach(([k,title])=>{
+    const rows = run.rows.filter(r=>r.type===k); if(!rows.length) return;
+    const tr = rows.map(r=>`<tr><td><b>${esc(r.name)}</b><div class="faint small">${esc(r.designation||'')}${r.department?' · '+esc(r.department):''}</div></td><td>${r.lines.map(l=>`${esc(proj(l.pid)?.name)}${k==='Shared'?' '+Math.round(l.share)+'%':''}`).join(', ')||'<span class="faint">–</span>'}${r.issue?`<div class="small" style="color:var(--risk)">${esc(r.issue)}</div>`:''}</td><td class="num">${rs(r.base)}</td><td class="num">${rs(r.earned)}</td><td class="num">${rs(r.projected)}</td>
+      <td style="width:140px"><input class="cell" style="min-width:100px;max-width:130px" inputmode="decimal" data-chg="ovr" data-id="${esc(r.id)}" value="${r.override&&r.override.amt!=null?r.override.amt:''}" placeholder="—" aria-label="Override for ${esc(r.name)}"></td><td class="num"><b>${rs(r.final)}</b></td></tr>`).join('');
+    const tot = rows.reduce((s,r)=>s+r.final,0);
+    h += `<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="muted small">${rows.length} people · ${rs(tot)}</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Project allocation</th><th class="num">Monthly base</th><th class="num">Calculated</th><th class="num">Projected</th><th>Override (₹)</th><th class="num">Payable</th></tr></thead><tbody>${tr}</tbody></table></div></section>`;
+  });
+  h += `<p class="faint small" style="margin-top:10px">Override replaces the calculated amount for that person this month (for example, joined mid-month or on long leave). Leave it blank to pay as calculated.</p>`;
+  return h;
+}
+async function setOverride(id, val){
+  const d = JSON.parse(JSON.stringify(S.inc[S.month] || {month:S.month, overrides:{}})); d.overrides ||= {};
+  if (val==='') delete d.overrides[id]; else d.overrides[id] = {amt:num(val), by:S.user.name, at:new Date().toISOString()};
+  S.inc[S.month]=d; try{ await Store.set('incentives', S.month, d); toast('Override saved'); render(); }catch(e){ toast('Could not save: '+e.message); }
+}
+
+/* ---------- staff master ---------- */
+const STAFF_COLS = [['name','Name'],['designation','Designation'],['department','Department'],['dedicated','Dedicated'],['shared','Shared'],['location','Location'],['gross','Monthly Gross'],['ctcYear','Yearly CTC'],['ctcMonth','Monthly CTC']];
+function vStaff(){
+  let h = topbar('Staff master', 'People covered by project incentive. Upload the filled template to replace the list.', `<button class="btn" data-act="template">Download template</button><label class="btn primary" style="display:inline-block">Upload filled template<input type="file" accept=".xlsx,.xls,.csv" data-chg="upload" hidden></label>`);
+  if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No staff yet','Download the template, fill one row per person, and upload it here.')}<div class="small muted" style="max-width:640px;margin:0 auto 10px">${templateHelp()}</div></section>`;
+  const rows = S.staff.map(r=>{ const a=allocation(r); return `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.designation)}</td><td>${esc(r.department)}</td><td>${a.type}</td><td>${a.alloc.map(x=>esc(proj(x.pid)?.name)+(a.type==='Shared'?' '+Math.round(x.share)+'%':'')).join(', ')}${a.issue?`<div class="small" style="color:var(--risk)">${esc(a.issue)}</div>`:''}</td><td>${esc(r.location)}</td><td class="num">${rs(num(r.gross))}</td><td class="num">${rs(num(r.ctcMonth))}</td><td class="num">${rs(num(r.ctcYear))}</td><td><button class="btn ghost sm" data-act="delStaff" data-id="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">Remove</button></td></tr>`; }).join('');
+  const issues = S.staff.filter(r=>allocation(r).issue).length;
+  h += `${issues?`<div class="banner risk">${issues} ${issues>1?'people have':'person has'} a project that could not be matched. Fix the Dedicated or Shared column and upload again.</div>`:''}
+  <section class="panel"><div class="panel-head"><h2>${S.staff.length} people</h2><button class="btn danger sm" data-act="clearStaff">Remove all</button></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Type</th><th>Projects</th><th>Location</th><th class="num">Monthly gross</th><th class="num">Monthly CTC</th><th class="num">Yearly CTC</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>
+  <section class="panel"><h3 style="margin-bottom:6px">How the template is read</h3><div class="small muted">${templateHelp()}</div></section>`;
+  return h;
+}
+function templateHelp(){ const names = S.config.projects.map(p=>p.name).join(', ');
+  return `<p><b>Dedicated:</b> the project name (for example Marvel), or Yes to use the Location column as the project.</p><p style="margin-top:4px"><b>Shared:</b> projects separated by commas. Equal split by default (Marvel, Miraya); give shares with a colon if unequal (Marvel:60, Miraya:40); or write All for every project.</p><p style="margin-top:4px">Fill only one of Dedicated or Shared. Valid project names: ${esc(names)}.</p>`; }
+function downloadTemplate(){
+  const ws = XLSX.utils.aoa_to_sheet([STAFF_COLS.map(c=>c[1])]); ws['!cols']=STAFF_COLS.map((c,i)=>({wch:i===0?26:16}));
+  const help = XLSX.utils.aoa_to_sheet([['How to fill'],['Dedicated','Project name (e.g. Marvel) or "Yes" to use Location as the project'],['Shared','Comma-separated projects. Equal split: Marvel, Miraya. Unequal: Marvel:60, Miraya:40. Every project: All'],['Rule','Fill only one of Dedicated / Shared per person'],['Amounts','Monthly Gross, Yearly CTC, Monthly CTC in rupees, numbers only'],[],['Valid project names'],...S.config.projects.map(p=>[p.name])]);
+  help['!cols']=[{wch:22},{wch:90}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Staff'); XLSX.utils.book_append_sheet(wb, help, 'Instructions');
+  saveFile('Project_Incentive_Staff_Template.xlsx', wbBlob(wb));
+}
+async function uploadStaff(file){
+  try{
+    const buf = await file.arrayBuffer(); const wb = XLSX.read(buf,{type:'array'}); const ws = wb.Sheets['Staff'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws,{defval:''});
+    const norm = s => String(s).toLowerCase().replace(/[^a-z]/g,'');
+    const map = {name:['name','employeename','empname'],designation:['designation'],department:['department','dept'],dedicated:['dedicated'],shared:['shared'],location:['location'],gross:['monthlygross','gross','monthlygorss'],ctcYear:['yearlyctc','annualctc','ctcyearly'],ctcMonth:['monthlyctc','ctcmonthly']};
+    const out = rows.map((r,i)=>{ const o={}; const keys=Object.keys(r); Object.entries(map).forEach(([k,al])=>{ const hit=keys.find(x=>al.includes(norm(x))); o[k]= hit!=null? r[hit] : ''; });
+      ['gross','ctcYear','ctcMonth'].forEach(k=>o[k]=num(o[k])); ['name','designation','department','dedicated','shared','location'].forEach(k=>o[k]=String(o[k]).trim());
+      if (!o.ctcMonth && o.ctcYear) o.ctcMonth = Math.round(o.ctcYear/12); o.id = 's'+(i+1)+'-'+slug(o.name).slice(0,40); return o; }).filter(o=>o.name);
+    if (!out.length) return toast('No rows found. Keep the header row from the template.');
+    const ok = await ask('Replace staff list?', `${out.length} people found in ${file.name}. This replaces the current list of ${S.staff.length}.`, 'Replace list'); if(!ok) return;
+    S.staff = out; await Store.set('app','staff',{rows:out, uploadedAt:new Date().toISOString()}); toast(out.length+' people loaded'); render();
+  }catch(e){ toast('Could not read that file: '+e.message); }
+}
+
+/* ---------- masters ---------- */
+function vMasters(){
+  const cl = S.config.clusters;
+  let h = topbar('Projects & buildings', 'Add projects, buildings and infra. Each project gets its own login with its name.');
+  h += `<section class="panel"><div class="panel-head"><h2>Add a project</h2></div><div class="row"><input class="in" id="npName" placeholder="Project name" style="flex:1;min-width:180px"><input class="in" id="npBld" placeholder="Buildings, comma separated (Wing A, Wing B)" style="flex:2;min-width:240px"><label class="row small"><input type="checkbox" id="npInfra" checked> Add Infra</label><select class="in" id="npCl"><option value="">No cluster head (CEO approves)</option>${cl.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><button class="btn primary" data-act="addProject">Create project</button></div></section>`;
+  h += `<div class="cards" style="margin-top:18px">${S.config.projects.map(p=>`<section class="panel"><div class="row"><input class="in" style="flex:1;font-weight:700" value="${esc(p.name)}" data-chg="pName" data-p="${p.id}" aria-label="Project name"><button class="btn danger sm" data-act="delProject" data-p="${p.id}">Delete</button></div>
+    <div class="row" style="margin-top:10px"><label class="small muted" style="flex:1">Cluster head<select class="in" style="width:100%" data-chg="pCl" data-p="${p.id}"><option value="">None, CEO approves</option>${cl.map(c=>`<option value="${c.id}" ${c.id===p.clusterId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label class="small muted" style="width:120px">Password<input class="in" style="width:100%" value="${esc(p.password)}" data-chg="pPw" data-p="${p.id}"></label></div>
+    <div class="bld-list">${p.buildings.map(b=>`<div class="bld"><input class="in" value="${esc(b.name)}" data-chg="bName" data-p="${p.id}" data-b="${b.id}" aria-label="Building name"><select class="in" data-chg="bKind" data-p="${p.id}" data-b="${b.id}"><option ${b.kind!=='Infra'?'selected':''}>Building</option><option ${b.kind==='Infra'?'selected':''}>Infra</option></select><button class="btn ghost sm" data-act="delBld" data-p="${p.id}" data-b="${b.id}" aria-label="Remove ${esc(b.name)}">Remove</button></div>`).join('')}</div>
+    <div class="row"><input class="in" style="flex:1" placeholder="New building or infra" id="nb-${p.id}"><select class="in" id="nk-${p.id}"><option>Building</option><option>Infra</option></select><button class="btn sm" data-act="addBld" data-p="${p.id}">Add</button></div></section>`).join('')}</div>`;
+  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Cluster heads</h2><span class="muted small">They approve figures for the projects assigned above</span></div>
+    ${cl.map(c=>`<div class="row" style="margin-bottom:8px"><input class="in" style="flex:1" value="${esc(c.name)}" data-chg="cName" data-c="${c.id}" aria-label="Cluster head name"><span class="small muted">${S.config.projects.filter(p=>p.clusterId===c.id).map(p=>esc(p.name)).join(', ')||'No projects'}</span><input class="in" style="width:110px" value="${esc(c.password)}" data-chg="cPw" data-c="${c.id}" aria-label="Password"><button class="btn ghost sm" data-act="delCluster" data-c="${c.id}">Remove</button></div>`).join('')}
+    <div class="row" style="margin-top:12px"><input class="in" id="ncName" placeholder="Cluster head name" style="flex:1"><button class="btn" data-act="addCluster">Add cluster head</button></div></section>`;
+  return h;
+}
+
+/* ---------- settings ---------- */
+function vSettings(){
+  const st=S.config.settings;
+  let h = topbar('Settings','Incentive rule, units and CEO access.');
+  h += `<section class="panel"><div class="panel-head"><h2>Incentive rule</h2></div>
+    <div class="row"><label class="small muted">Incentive line (%)<br><input class="in" style="width:110px" value="${st.threshold}" data-chg="thr"></label>
+    <label class="small muted">Paid on<br><select class="in" data-chg="base"><option value="gross" ${st.base!=='ctc'?'selected':''}>Monthly gross</option><option value="ctc" ${st.base==='ctc'?'selected':''}>Monthly CTC</option></select></label>
+    <label class="small muted">Units for target and achievement<br><input class="in" style="width:140px" value="${esc(st.unit)}" data-chg="unit"></label></div>
+    <h3 style="margin:18px 0 8px">Slabs</h3><div class="tbl-wrap" style="max-width:520px"><table><thead><tr><th>Achievement from (%)</th><th>Incentive (% of base)</th><th></th></tr></thead><tbody>
+    ${st.slabs.map((s,i)=>`<tr><td><input class="cell" value="${s.min}" data-chg="slabMin" data-i="${i}"></td><td><input class="cell" value="${s.pct}" data-chg="slabPct" data-i="${i}"></td><td>${st.slabs.length>1?`<button class="btn ghost sm" data-act="delSlab" data-i="${i}">Remove</button>`:''}</td></tr>`).join('')}</tbody></table></div>
+    <button class="btn sm" style="margin-top:10px" data-act="addSlab">Add slab</button>
+    <p class="faint small" style="margin-top:10px">Current rule: ${st.slabs.slice().sort((a,b)=>a.min-b.min).map(s=>`at ${s.min}% and above, ${s.pct}% of monthly ${st.base==='ctc'?'CTC':'gross'}`).join('; ')}. Below the first slab nothing is paid.</p></section>`;
+  h += `<section class="panel"><div class="panel-head"><h2>CEO login</h2></div><label class="small muted">Password<br><input class="in" value="${esc(S.config.ceo.password)}" data-chg="ceoPw" style="width:180px"></label>
+    <p class="faint small" style="margin-top:8px">Project and cluster head passwords are on Projects & buildings.</p></section>`;
+  h += `<section class="panel"><div class="panel-head"><h2>Try it with sample figures</h2></div><p class="muted small" style="max-width:640px">Loads six months of made-up targets and achievement for every project, plus a sample staff list, so you can see the dashboard, meeting view and incentive working. Remove it before real entries start.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" data-act="demo">Load sample figures</button><button class="btn danger" data-act="wipe">Remove all figures and staff</button></div>
+    <p class="faint small" style="margin-top:12px">Storage: ${Store.mode==='cloud'?'shared Claude artifact database':Store.mode==='api'?'shared database (Vercel / Neon)':'this browser only'}.</p></section>`;
+  return h;
+}
+/* ---------- weekly meeting mode ---------- */
+function meetSlides(){
+  const pids = visibleProjects().map(p=>p.id); const pf = calcPortfolio(pids,S.month,viewMode());
+  const slides = [{t:'Portfolio', html:()=>{
+    const ins = insightsFor(pf,{pending:true,incentive:S.user.role==='ceo'});
+    return `<div class="hero-num"><span class="big" style="color:var(--${tone(pf.pct)==='none'?'ink':tone(pf.pct)})">${pctS(pf.pct)}</span><div><h2>of the month's target achieved</h2><p class="muted">Projected month end ${pctS(pf.projRR)} · ${fmt(pf.mtd)} of ${fmt(pf.target)} ${esc(S.config.settings.unit)}</p></div></div>
+    <section class="panel" style="margin-top:22px">${board(pf)}</section>
+    <div class="grid2" style="margin-top:18px"><section class="panel"><h2 style="margin-bottom:10px">What this means</h2>${insightsHTML(ins.slice(0,5))}</section><section class="panel"><h2 style="margin-bottom:10px">Projected month end after each week</h2>${trajectoryTable(pf)}</section></div>`; }}];
+  pf.list.forEach(c=>slides.push({t:c.p.name, html:()=>`<h1>${esc(c.p.name)}</h1><p class="muted" style="margin:4px 0 18px">Cluster head: ${esc(cluster(c.p.clusterId)?.name||'CEO')}</p>${projectBody(c)}`}));
+  if (S.user.role==='ceo') slides.push({t:'Incentive', html:()=>{ const run=incentiveRun(S.month);
+    const rows = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; return `<tr><td><b>${esc(c.p.name)}</b></td><td class="num">${pctChip(c.pct)}</td><td class="num">${pctChip(c.projRR)}</td><td class="num">${run.pmap[c.pid].earnPct?'<span class="pct good">Qualified</span>':c.projRR>=thr()?'<span class="pct watch">On course</span>':'<span class="pct risk">Below line</span>'}</td><td class="num">${b.heads}</td><td class="num">${rs(b.earned)}</td><td class="num">${rs(b.projected)}</td></tr>`; }).join('');
+    return `<div class="hero-num"><span class="big">${rs(run.total)}</span><div><h2>incentive earned on approved figures</h2><p class="muted">${rs(run.projected)} if every project closes at its run rate${S.staff.length?'':' · load the staff master to see amounts'}</p></div></div>
+    <section class="panel" style="margin-top:22px"><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Achieved %</th><th class="num">Projected %</th><th class="num">Status</th><th class="num">People</th><th class="num">Earned</th><th class="num">Projected</th></tr></thead><tbody>${rows}</tbody></table></div></section>`; }});
+  return slides;
+}
+function openMeeting(){ S.meet = {i:0}; renderMeet(); try{ document.documentElement.requestFullscreen?.().catch(()=>{}); }catch(e){} }
+function closeMeeting(){ S.meet=null; $('#meet')?.remove(); try{ if (document.fullscreenElement) document.exitFullscreen(); }catch(e){} render(); }
+function renderMeet(){
+  const slides = meetSlides(); S.meet.i = Math.max(0,Math.min(S.meet.i,slides.length-1)); const s=slides[S.meet.i]; const mi=monthInfo(S.month);
+  let el = $('#meet'); if(!el){ el=document.createElement('div'); el.id='meet'; el.className='meet'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Weekly meeting'); document.body.appendChild(el); }
+  el.innerHTML = `<div class="meet-top">${logoHTML()}<div style="margin-left:12px"><b style="font-stretch:85%;font-size:17px">Weekly review · ${mi.label}</b><div class="small muted">${viewMode()==='approved'?'Approved figures':'Approved and pending figures'} · ${S.meet.i+1} of ${slides.length}: ${esc(s.t)}</div></div><span class="spacer"></span>
+    <div class="dots">${slides.map((_,i)=>`<i class="${i===S.meet.i?'on':''}"></i>`).join('')}</div>
+    <select class="in" data-mchg="jump" aria-label="Go to">${slides.map((x,i)=>`<option value="${i}" ${i===S.meet.i?'selected':''}>${esc(x.t)}</option>`).join('')}</select>
+    <button class="btn" data-mact="prev" ${S.meet.i===0?'disabled':''}>Previous</button><button class="btn primary" data-mact="next" ${S.meet.i===slides.length-1?'disabled':''}>Next</button><button class="btn ghost" data-mact="exit">Close</button></div>
+    <div class="meet-body"><div class="inner">${s.html()}</div></div>`;
+  el.querySelector('.meet-body').scrollTop=0;
+  el.onclick = ev=>{ const b=ev.target.closest('[data-mact]'); if(!b) return; const a=b.dataset.mact; if(a==='prev'){S.meet.i--;renderMeet();} if(a==='next'){S.meet.i++;renderMeet();} if(a==='exit') closeMeeting(); };
+  el.onchange = ev=>{ if(ev.target.dataset.mchg==='jump'){ S.meet.i=+ev.target.value; renderMeet(); } };
+}
+document.addEventListener('keydown', ev=>{ if(!S.meet || ev.target.matches('input,select,textarea')) return;
+  if (ev.key==='ArrowRight'||ev.key==='PageDown'){ S.meet.i++; renderMeet(); } else if (ev.key==='ArrowLeft'||ev.key==='PageUp'){ S.meet.i--; renderMeet(); } else if (ev.key==='Escape'){ closeMeeting(); } });
+
+/* ---------- exports ---------- */
+function exportSummary(){
+  const pids = visibleProjects().map(p=>p.id); const pf = calcPortfolio(pids,S.month,viewMode()); const mi=monthInfo(S.month);
+  const aoa = [[`${mi.label} weekly achievement summary, by building (${viewMode()==='approved'?'approved figures':'incl. pending'}) · ${S.config.settings.unit}`],[],['Sr No','Project','Building','Month target','W1','W2','W3','W4','Achievement','% Achieved','Project % achieved','Projected month end %']];
+  let sr=0; pf.list.forEach(c=>{ c.blds.forEach((b,i)=>{ sr++; aoa.push([sr, i===0?c.p.name:'', b.name, b.target, ...b.weeks.map(w=>w.a??''), b.mtd, b.pct==null?'':+(b.pct/100).toFixed(4), i===0&&c.pct!=null?+(c.pct/100).toFixed(4):'', i===0&&c.projRR!=null?+(c.projRR/100).toFixed(4):'']); });
+    aoa.push(['','', 'TOTAL', c.target, ...c.weeks.map(w=>w.a??''), c.mtd, c.pct==null?'':+(c.pct/100).toFixed(4),'','']); });
+  aoa.push(['','','GRAND TOTAL', pf.target, ...pf.weeks.map(w=>w.a??''), pf.mtd, pf.pct==null?'':+(pf.pct/100).toFixed(4),'', pf.projRR==null?'':+(pf.projRR/100).toFixed(4)]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=[{wch:6},{wch:14},{wch:14},{wch:13},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:11},{wch:15},{wch:18}];
+  const range = XLSX.utils.decode_range(ws['!ref']); for(let R=3;R<=range.e.r;R++) for (const C of [9,10,11]){ const a=XLSX.utils.encode_cell({r:R,c:C}); if(ws[a]&&typeof ws[a].v==='number') ws[a].z='0.0%'; }
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Summary');
+  saveFile(`${MN[mi.m-1]}_${fyLabel(S.month)}_W${Math.max(1,pf.lastIdx+1)}_Achievement.xlsx`, wbBlob(wb));
+}
+function exportIncentive(){
+  const run = incentiveRun(S.month); const mi=monthInfo(S.month);
+  const aoa=[[`Project incentive register · ${mi.label} · approved figures`],[],['Name','Designation','Department','Type','Project allocation','Location','Monthly base','Calculated','Projected','Override','Payable']];
+  run.rows.forEach(r=>aoa.push([r.name,r.designation,r.department,r.type,r.lines.map(l=>proj(l.pid)?.name+(r.type==='Shared'?' '+Math.round(l.share)+'%':'')).join(', '),r.location,r.base,Math.round(r.earned),Math.round(r.projected),r.override?.amt??'',Math.round(r.final)]));
+  aoa.push([],['Total','','','','','','',Math.round(run.rows.reduce((s,r)=>s+r.earned,0)),Math.round(run.projected),'',Math.round(run.total)]);
+  const p=[['Project','Target','Achieved','% achieved','Incentive rate %','Projected %','People','Earned','Projected']];
+  run.pf.list.forEach(c=>{ const b=run.byProject[c.pid]; p.push([c.p.name,c.target,c.mtd,c.pct==null?'':+(c.pct).toFixed(1),run.pmap[c.pid].earnPct,c.projRR==null?'':+c.projRR.toFixed(1),b.heads,Math.round(b.earned),Math.round(b.projected)]); });
+  const wb=XLSX.utils.book_new(); const w1=XLSX.utils.aoa_to_sheet(aoa); w1['!cols']=[{wch:24},{wch:18},{wch:16},{wch:11},{wch:30},{wch:14},{wch:12},{wch:12},{wch:12},{wch:10},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,w1,'Register'); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(p),'By project');
+  saveFile(`Project_Incentive_${MN[mi.m-1]}_${mi.y}.xlsx`, wbBlob(wb));
+}
+
+/* ---------- sample data ---------- */
+function rng(seed){ let s=seed%2147483647; if(s<=0)s+=2147483646; return ()=> (s=s*16807%2147483647)/2147483647; }
+async function loadDemo(){
+  const ok = await ask('Load sample figures?','This writes made-up figures for every project from April to this month and a sample staff list. Real entries for those months will be overwritten.','Load sample'); if(!ok) return;
+  const r = rng(20260924); const perf = {'marvel':.97,'miraya':.74,'midas-city':.86,'mithila-01':.55,'shyni-gold':.78,'niyoshi-park':.9};
+  const months = fyMonths(S.month).filter(m=>m<=todayMonth()); const cur=todayMonth(), cw=todayWeek();
+  toast('Writing sample figures…');
+  for (const m of months){ const mi=monthInfo(m);
+    for (const p of S.config.projects){ const e={month:m,projectId:p.id,targets:{},weeks:{}}; const base = (perf[p.id]??.8) + (r()-.5)*.22;
+      p.buildings.forEach(b=>{ e.targets[b.id] = Math.round((b.kind==='Infra'? 15+r()*25 : 40+r()*80)); });
+      const lastW = m<cur ? 4 : cw;
+      for (let n=1;n<=lastW;n++){ const w=mi.weeks[n-1]; const vals={};
+        let shape = 1; if (m===cur && p.id==='miraya') shape=[1.1,.85,.55,.5][n-1]; if (m===cur && p.id==='mithila-01') shape=[.6,.5,.7,.6][n-1];
+        p.buildings.forEach((b,bi)=>{ const t = Math.round(e.targets[b.id]*w.days/mi.dim*100)/100; let a = t*base*shape*(0.75+r()*0.5); if (p.id==='marvel' && b.name==='Wing D' && m===cur) a=0; if (b.kind==='Infra' && p.id==='midas-city') a*=.45; vals[b.id]={t, a:Math.round(a*100)/100}; });
+        const status = (m===cur && n===cw) ? (['marvel','miraya','niyoshi-park'].includes(p.id)?'submitted':'draft') : 'approved';
+        e.weeks[n] = {vals, status, submittedAt:new Date().toISOString(), submittedBy:p.name, ...(status==='approved'?{approvedBy:cluster(p.clusterId)?.name||'CEO', approvedAt:new Date().toISOString()}:{}), log:[]};
+      }
+      await saveEntry(e);
+    } }
+  const staff=[['Rahul Deshmukh','Project Manager','Projects','Marvel','','Marvel',145000],['Sneha Kulkarni','Site Engineer','Projects','Marvel','','Marvel',62000],['Amit Jadhav','Project Manager','Projects','Miraya','','Miraya',138000],['Pooja Shinde','Site Engineer','Projects','Miraya','','Miraya',58000],['Kiran Pawar','Project Manager','Projects','Midas City','','Midas City',150000],['Nilesh Gaikwad','Site Engineer','Projects','Midas City','','Midas City',60000],['Suresh More','Project In-charge','Projects','Mithila-01','','Mithila-01',98000],['Ganesh Bhosale','Project In-charge','Projects','Shyni Gold','','Shyni Gold',95000],['Vaishali Patil','Project Manager','Projects','Niyoshi Park','','Niyoshi Park',132000],['Prakash Thorat','QS Engineer','Contracts','','Marvel, Midas City, Mithila-01','Head Office',85000],['Meera Joshi','MEP Lead','MEP','','Marvel:40, Miraya:30, Niyoshi Park:30','Head Office',120000],['Sachin Wagh','Safety Officer','EHS','','All','Head Office',70000],['Rohit Chavan','Planning Engineer','Planning','','Miraya, Shyni Gold','Head Office',76000]]
+    .map((x,i)=>({id:'s'+(i+1)+'-'+slug(x[0]),name:x[0],designation:x[1],department:x[2],dedicated:x[3],shared:x[4],location:x[5],gross:x[6],ctcMonth:Math.round(x[6]*1.12),ctcYear:Math.round(x[6]*1.12*12)}));
+  S.staff=staff; await Store.set('app','staff',{rows:staff, demo:true});
+  toast('Sample figures loaded'); render();
+}
+async function wipeAll(){
+  const ok = await ask('Remove all figures and staff?','Every weekly entry, approval, incentive override and the staff list will be deleted. Projects, buildings and logins stay.','Remove everything',true); if(!ok) return;
+  for (const id of Object.keys(S.entries)) await Store.del('entries',id);
+  for (const id of Object.keys(S.inc)) await Store.del('incentives',id);
+  await Store.del('app','staff'); S.entries={}; S.inc={}; S.staff=[]; toast('All figures removed'); render();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async ev=>{
+  const b = ev.target.closest('[data-act]'); if(!b || !$('#app').contains(b)) return; const a=b.dataset.act; const c=S.config;
+  const leaveEntry = async()=> !(S.view==='entry' && S.dirty) || await ask('Leave without saving?','Your changes on this week are not saved yet.','Leave');
+  switch(a){
+    case 'nav': if (b.dataset.v==='meeting'){ openMeeting(); break; } if(!(await leaveEntry())) break; S.dirty=false; S.view=b.dataset.v; render(); window.scrollTo(0,0); break;
+    case 'logout': S.user=null; S.dirty=false; try{ sessionStorage.removeItem('mip:user'); }catch(e){} render(); break;
+    case 'appr': S.approvedOnly = b.dataset.v==='1'; render(); break;
+    case 'refresh': await loadAll(); render(); toast('Figures refreshed'); break;
+    case 'meet': openMeeting(); break;
+    case 'week': if(!(await leaveEntry())) break; S.dirty=false; S.week=+b.dataset.v; render(); break;
+    case 'saveDraft': persistEntry('draft'); break;
+    case 'submitWeek': persistEntry('submit'); break;
+    case 'reopen': { const e=JSON.parse(JSON.stringify(getEntry(S.month,S.projectSel))); const W=e.weeks[S.week]; if(!W) break; W.status='draft'; (W.log||=[]).push({at:new Date().toISOString(),by:'CEO',action:'reopened'}); await saveEntry(e); toast('Reopened as draft'); render(); break; }
+    case 'decide': decide(b.dataset.k, b.dataset.d); break;
+    case 'exportSummary': exportSummary(); break;
+    case 'exportIncentive': exportIncentive(); break;
+    case 'template': downloadTemplate(); break;
+    case 'delStaff': S.staff = S.staff.filter(r=>r.id!==b.dataset.id); await Store.set('app','staff',{rows:S.staff}); render(); break;
+    case 'clearStaff': if (await ask('Remove all staff?','The incentive register will be empty until you upload again.','Remove all',true)){ S.staff=[]; await Store.set('app','staff',{rows:[]}); render(); } break;
+    case 'addProject': { const name=$('#npName').value.trim(); if(!name) return toast('Enter a project name'); if (c.projects.some(p=>slug(p.name)===slug(name))) return toast('A project with that name exists');
+      let id=slug(name); while(c.projects.some(p=>p.id===id)) id+='-2';
+      const bl = $('#npBld').value.split(',').map(s=>s.trim()).filter(Boolean).map(n=>B(id,n)); if ($('#npInfra').checked) bl.push(B(id,'Infra','Infra'));
+      c.projects.push({id,name,clusterId:$('#npCl').value,password:'123',buildings:bl}); await saveConfig(`${name} created · login "${name}", password 123`); render(); break; }
+    case 'delProject': { const p=proj(b.dataset.p); if (await ask(`Delete ${p.name}?`,'The project, its buildings and its login are removed. Past figures stay in storage but no longer show.','Delete project',true)){ c.projects=c.projects.filter(x=>x.id!==p.id); await saveConfig('Project deleted'); render(); } break; }
+    case 'addBld': { const p=proj(b.dataset.p); const inp=$('#nb-'+p.id); const name=inp.value.trim(); if(!name) return toast('Enter a building name'); let nb=B(p.id,name,$('#nk-'+p.id).value); while(p.buildings.some(x=>x.id===nb.id)) nb.id+='-2'; p.buildings.push(nb); await saveConfig(`${name} added to ${p.name}`); render(); break; }
+    case 'delBld': { const p=proj(b.dataset.p); const bl=p.buildings.find(x=>x.id===b.dataset.b); if (await ask(`Remove ${bl.name} from ${p.name}?`,'Its figures will no longer count in totals.','Remove',true)){ p.buildings=p.buildings.filter(x=>x.id!==bl.id); await saveConfig('Building removed'); render(); } break; }
+    case 'addCluster': { const name=$('#ncName').value.trim(); if(!name) return toast('Enter a name'); let id=slug(name); while(c.clusters.some(x=>x.id===id)) id+='-2'; c.clusters.push({id,name,password:'123'}); await saveConfig(`${name} added · password 123`); render(); break; }
+    case 'delCluster': { const k=cluster(b.dataset.c); if (await ask(`Remove ${k.name}?`,'Their projects move to CEO approval until you assign another cluster head.','Remove',true)){ c.clusters=c.clusters.filter(x=>x.id!==k.id); c.projects.forEach(p=>{ if(p.clusterId===k.id) p.clusterId=''; }); await saveConfig('Cluster head removed'); render(); } break; }
+    case 'addSlab': { const mx=Math.max(...c.settings.slabs.map(s=>+s.min)); c.settings.slabs.push({min:Math.min(mx+20,150),pct:+c.settings.slabs[c.settings.slabs.length-1].pct+5}); await saveConfig('Slab added'); render(); break; }
+    case 'delSlab': c.settings.slabs.splice(+b.dataset.i,1); await saveConfig('Slab removed'); render(); break;
+    case 'demo': loadDemo(); break;
+    case 'wipe': wipeAll(); break;
+  }
+});
+document.addEventListener('change', async ev=>{
+  const t=ev.target; const k=t.dataset.chg; if(!k || !$('#app').contains(t)) return; const c=S.config; const v=t.value;
+  const P = ()=>proj(t.dataset.p), Bd = ()=>proj(t.dataset.p).buildings.find(x=>x.id===t.dataset.b), K=()=>cluster(t.dataset.c);
+  switch(k){
+    case 'month': if (S.view==='entry' && S.dirty && !(await ask('Leave without saving?','Your changes on this week are not saved yet.','Leave'))){ t.value=S.month; break; } S.dirty=false; S.month=v; render(); break;
+    case 'projectSel': S.dirty=false; S.projectSel=v; render(); break;
+    case 'upload': if (t.files[0]) uploadStaff(t.files[0]); t.value=''; break;
+    case 'ovr': setOverride(t.dataset.id, v.trim()); break;
+    case 'pName': if(!v.trim()) return render(); P().name=v.trim(); await saveConfig('Renamed'); break;
+    case 'pCl': P().clusterId=v; await saveConfig('Cluster head updated'); render(); break;
+    case 'pPw': if(!v.trim()) return render(); P().password=v.trim(); await saveConfig('Password updated'); break;
+    case 'bName': if(!v.trim()) return render(); Bd().name=v.trim(); await saveConfig('Renamed'); break;
+    case 'bKind': Bd().kind=v; await saveConfig('Updated'); break;
+    case 'cName': if(!v.trim()) return render(); K().name=v.trim(); await saveConfig('Renamed'); render(); break;
+    case 'cPw': if(!v.trim()) return render(); K().password=v.trim(); await saveConfig('Password updated'); break;
+    case 'thr': { const n=num(v); if(n<=0||n>200) return render(); c.settings.threshold=n; if (c.settings.slabs.length===1) c.settings.slabs[0].min=n; await saveConfig('Incentive line updated'); render(); break; }
+    case 'base': c.settings.base=v; await saveConfig('Updated'); render(); break;
+    case 'unit': c.settings.unit=v.trim()||'₹ Lakhs'; await saveConfig('Units updated'); break;
+    case 'slabMin': c.settings.slabs[+t.dataset.i].min=num(v); await saveConfig('Slab updated'); render(); break;
+    case 'slabPct': c.settings.slabs[+t.dataset.i].pct=num(v); await saveConfig('Slab updated'); render(); break;
+    case 'ceoPw': if(!v.trim()) return render(); c.ceo.password=v.trim(); await saveConfig('CEO password updated'); break;
+  }
+});
+document.addEventListener('input', ev=>{ const t=ev.target; if(!t.dataset.in) return; S.dirty=true; if (t.dataset.in==='t') t.dataset.auto = t.value===''?'1':'0'; updateEntryCalc(); });
+
+/* ---------- boot ---------- */
+(async function boot(){
+  $('#app').innerHTML = `<div class="login-wrap"><div class="muted">Loading figures…</div></div>`;
+  await Store.init(); try{ await loadAll(); }catch(e){ S.config = normConfig(null); }
+  S.month = todayMonth(); S.week = todayWeek();
+  try{ const u=JSON.parse(sessionStorage.getItem('mip:user')||'null'); if(u){ const rec = u.role==='ceo'?S.config.ceo:u.role==='cluster'?cluster(u.id):proj(u.id); if(rec){ S.user={role:u.role,id:u.id,name:u.role==='ceo'?'CEO':rec.name}; S.view=u.role==='project'?'entry':u.role==='cluster'?'approvals':'dashboard'; S.projectSel=u.role==='project'?u.id:visibleProjects()[0]?.id; } } }catch(e){}
+  let t=null;
+  Store.watch(()=>{ clearTimeout(t); t=setTimeout(()=>{ if (!S.user) return renderLogin(); if (S.view==='entry' && S.dirty) return; if (document.querySelector('#dlg[open]')) return; if (S.meet) return renderMeet(); if (document.activeElement && document.activeElement.matches('input,select,textarea') && $('#app').contains(document.activeElement)) return; render(); }, 250); });
+  render();
+})();
+</script>
+</body>
+</html>

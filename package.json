@@ -1,0 +1,6 @@
+{
+  "name": "mangalam-weekly-achievement",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@neondatabase/serverless": "^0.10.4" }
+}
