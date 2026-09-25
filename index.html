@@ -678,20 +678,34 @@ function allocation(r, month){
 }
 function baseOf(r){ return S.config.settings.base==='ctc' ? num(r.ctcMonth) : num(r.gross); }
 const allocText = (r) => r.alloc.map(l=>`${proj(l.pid)?.name||l.pid}${r.type==='Shared'?' '+Math.round(l.share)+'%':''}`).join(', ');
+const GATES = {none:{l:'Clear', f:1}, half:{l:'Reduce 50%', f:0.5}, forfeit:{l:'Forfeit', f:0}};
+const incDoc = month => S.inc[month] || {month};
+function contributionOf(r, month){ const c=(incDoc(month).contrib||{})[r.id]; if (has(c)) return Math.max(0,Math.min(100,num(c))); return has(r.contribution) ? Math.max(0,Math.min(100,num(r.contribution))) : 100; }
 function incentiveRun(month){
-  const pf = calcPortfolio(S.config.projects.map(p=>p.id), month, 'approved');
-  const pmap = {}; pf.list.forEach(c=>pmap[c.pid]={c, earnPct:slabPct(c.pct)});
-  const atLine = slabPct(thr()); const fin = (S.inc[month]||{}).finalized; const fmap = {}; (fin?.rows||[]).forEach(x=>fmap[x.id]=x);
+  const pf = calcPortfolio(S.config.projects.map(p=>p.id), month, 'approved'); const D = incDoc(month);
+  const gates = D.gates||{}, adj = D.adj||{};
+  const pmap = {}; pf.list.forEach(c=>{ const g = GATES[gates[c.pid]?.mode||'none']; const slab=slabPct(c.pct); pmap[c.pid]={c, slab, gate:gates[c.pid]?.mode||'none', gateReason:gates[c.pid]?.reason||'', earnPct: slab*g.f}; });
+  const atLine = slabPct(thr()); const fin = D.finalized; const fmap = {}; (fin?.rows||[]).forEach(x=>fmap[x.id]=x);
   const rows = S.staff.map(r=>{
-    const a = allocation(r, month); const base = baseOf(r);
-    let earned=0, potential=0; const lines = a.alloc.map(x=>{ const q=pmap[x.pid]; const rate=q?q.earnPct:0; const e = base*x.share/100*rate/100; const pt = base*x.share/100*atLine/100; earned+=e; potential+=pt; return {...x, pct:q?.c.pct??null, rate, e, pt}; });
-    const f = fmap[r.id]; const final = f ? num(f.final) : earned;
-    return {...r, ...a, base, lines, earned, potential, final, reason: f?.reason||'', calcAtFinal: f?num(f.calc):null};
+    const a = allocation(r, month); const base = baseOf(r); const contrib = contributionOf(r, month);
+    let earned=0, potential=0;
+    const lines = a.alloc.map(x=>{ const q=pmap[x.pid]; const rate=q?q.earnPct:0; const e = base*contrib/100*x.share/100*rate/100; const pt = base*contrib/100*x.share/100*atLine/100; earned+=e; potential+=pt; return {...x, pct:q?.c.pct??null, rate, e, pt}; });
+    const paid = lines.filter(l=>l.e>0);
+    const working = !paid.length ? (lines.length ? `No project in this allocation reached ${thr()}%` : '') :
+      `${rs(base)}${contrib<100?` × ${Math.round(contrib*10)/10}% contribution`:''} × (${paid.map(l=>`${Math.round(l.share*10)/10}% ${proj(l.pid)?.name} × ${l.rate}%`).join(' + ')}) = ${rs(earned)}`;
+    const f = fmap[r.id]; const ad = adj[r.id];
+    const final = f ? num(f.final) : (ad && has(ad.amt) ? num(ad.amt) : earned);
+    return {...r, ...a, base, contrib, lines, earned, potential, final, working, effPct: base>0?earned/base*100:0,
+      reason: f ? (f.reason||'') : (ad?.reason||''), adjusted: f ? Math.round(num(f.final))!==Math.round(num(f.calc)) : !!(ad && has(ad.amt))};
   });
   const byProject = {}; S.config.projects.forEach(p=>byProject[p.id]={earned:0,potential:0,heads:0,fte:0,ded:0,sh:0,dedHeads:0,shFte:0});
   rows.forEach(r=>r.lines.forEach(l=>{ const b=byProject[l.pid]; if(!b) return; b.earned+=l.e; b.potential+=l.pt; b.heads++; b.fte+=l.share/100;
     if (r.type==='Dedicated'){ b.ded+=l.e; b.dedHeads++; } else { b.sh+=l.e; b.shFte+=l.share/100; } }));
   return {pf, pmap, rows, byProject, fin, total: rows.reduce((s,r)=>s+r.final,0), calcTotal: rows.reduce((s,r)=>s+r.earned,0), potential: rows.reduce((s,r)=>s+r.potential,0)};
+}
+async function saveIncDoc(month, fn, msg){
+  const d = JSON.parse(JSON.stringify(incDoc(month))); d.month=month; fn(d); S.inc[month]=d;
+  try{ await Store.set('incentives', month, d); if (msg) toast(msg); render(); }catch(e){ toast('Could not save: '+e.message); }
 }
 /* ---------- CHRO / variable-pay interpretation ---------- */
 function insightsFor(pf, opts={}){
@@ -867,7 +881,7 @@ function renderLogin(err){
 
 /* ---------- shell ---------- */
 const NAV = {
-  ceo:[['dashboard','Dashboard'],['project','Project deep dive'],['departments','Departments'],['approvals','Approvals'],['entry','Enter figures'],['incentives','Incentive calculation'],['finalise','Finalise & adjust'],['policy','Incentive policy'],['staff','Staff master'],['masters','Projects & departments'],['settings','Settings'],['guide','Guidelines']],
+  ceo:[['dashboard','Dashboard'],['project','Project deep dive'],['departments','Departments'],['approvals','Approvals'],['entry','Enter figures'],['incentives','Incentive calculation'],['finalise','Finalise & adjust'],['policy','Incentive policy'],['staff','Team members'],['masters','Projects & departments'],['settings','Settings'],['guide','Guidelines']],
   cluster:[['approvals','Approvals'],['notes','Meeting notes'],['dashboard','My projects'],['project','Project deep dive'],['meeting','Weekly meeting'],['mmeeting','Monthly meeting'],['qmeeting','Quarterly meeting'],['guide','Guidelines']],
   project:[['entry','Weekly entry'],['project','My progress'],['guide','Guidelines']],
   coord:[['entry','All projects entry'],['project','Project deep dive'],['meeting','Weekly meeting'],['guide','Guidelines']],
@@ -1127,125 +1141,213 @@ async function decide(key, d){
 
 /* ---------- incentives ---------- */
 const ruleText = () => { const st=S.config.settings; return st.slabs.slice().sort((a,b)=>a.min-b.min).map(s=>`${s.min}%+ of target pays ${s.pct}%`).join(', ')+` of monthly ${st.base==='ctc'?'CTC':'gross'}`; };
+function memberRows(run, k, editable){
+  return run.rows.filter(r=>r.type===k).map(r=>`<tr>
+    <td style="min-width:170px">${esc(r.name)}<div class="faint small">${esc(r.designation||'')}${r.department?' · '+esc(r.department):''}</div></td>
+    <td class="small" style="min-width:200px">${r.lines.map(l=>`${esc(proj(l.pid)?.name)}${k!=='Dedicated'?' <b style="font-weight:500">'+(Math.round(l.share*10)/10)+'%</b>':''} <span class="faint">(${l.pct==null?'–':Math.round(l.pct)+'%'} → ${l.rate}%)</span>`).join('<br>')||'<span class="faint">–</span>'}
+      ${r.issue?`<div class="small" style="color:var(--risk)">${esc(r.issue)}</div>`:''}<div class="faint small">${esc(r.rule)}</div>${editable?`<button class="btn ghost sm" style="padding-left:0" data-act="editAlloc" data-id="${esc(r.id)}">Edit projects and weightage</button>`:''}</td>
+    <td style="width:96px">${editable?`<input class="cell" style="min-width:70px" inputmode="decimal" data-chg="contrib" data-id="${esc(r.id)}" value="${Math.round(r.contrib*10)/10}" aria-label="Contribution % for ${esc(r.name)}">`:`${Math.round(r.contrib*10)/10}%`}</td>
+    <td class="num">${rs(r.base)}</td>
+    <td class="num" style="min-width:230px"><b style="font-weight:500">${rs(r.earned)}</b><div class="faint small" style="margin-left:auto;white-space:normal">${esc(r.working)}</div></td>
+    <td class="num">${pctS(r.effPct)}</td>
+    <td style="width:130px"><input class="cell" style="min-width:100px" inputmode="decimal" data-chg="amt" data-id="${esc(r.id)}" value="${r.adjusted?Math.round(r.final):''}" placeholder="${Math.round(r.earned)}" aria-label="Final amount for ${esc(r.name)}"></td>
+    <td style="min-width:170px"><input class="in" style="width:100%" data-chg="amtReason" data-id="${esc(r.id)}" value="${esc(r.reason)}" placeholder="${r.adjusted?'Reason required':'Reason if changed'}" aria-label="Reason for ${esc(r.name)}"></td></tr>`).join('');
+}
 function vIncentives(){
   let h = topbar('Incentive calculation', `${monthInfo(S.month).label} · ${ruleText()} · approved figures only`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download full workbook</button>`);
-  const run = incentiveRun(S.month);
-  if (run.fin) h += `<div class="banner good">Finalised on ${new Date(run.fin.at).toLocaleDateString('en-IN')} by ${esc(run.fin.by)}. Payable amounts come from Finalise & adjust.</div>`;
-  else if (!monthClosed(S.month)) h += `<div class="banner watch">${monthInfo(S.month).label} is not closed yet. These amounts use approved figures so far and change until Week ${monthInfo(S.month).N} is approved for every project.</div>`;
-  const prow = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; return `<tr><td>${esc(c.p.name)}</td><td class="num">${fmt(c.target)}</td><td class="num">${fmt(c.mtd)}</td><td class="num">${pctChip(c.pct)}</td><td class="num">${q.earnPct?`<span class="pct good">${q.earnPct}%</span>`:'<span class="faint">0%</span>'}</td><td class="num">${b.dedHeads}</td><td class="num">${(Math.round(b.shFte*10)/10)}</td><td class="num">${rs(b.ded)}</td><td class="num">${rs(b.sh)}</td><td class="num"><b style="font-weight:500">${rs(b.earned)}</b></td></tr>`; }).join('');
-  h += `<div class="kpis">${kpi(run.fin?'Payable (finalised)':'Calculated so far',rs(run.total))}${kpi('If every project reaches '+thr()+'%',rs(run.potential))}${kpi('People earning',run.rows.filter(r=>r.final>0).length+' / '+run.rows.length)}${kpi('Projects qualifying',run.pf.list.filter(c=>run.pmap[c.pid].earnPct>0).length+' / '+run.pf.list.length)}</div>`;
-  h += `<section class="panel"><div class="panel-head"><h2>By project</h2><span class="muted small">A project qualifies when its approved achievement for the month reaches ${thr()}% of target</span></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Target</th><th class="num">Achieved</th><th class="num">%</th><th class="num">Rate</th><th class="num">Dedicated people</th><th class="num">Shared FTE</th><th class="num">Dedicated</th><th class="num">Shared</th><th class="num">Total</th></tr></thead><tbody>${prow}</tbody></table></div></section>`;
-  if (!S.staff.length){ h += `<section class="panel">${emptyHTML('No staff loaded yet','Go to Staff master, download the template, fill it and upload it.')}<div class="row" style="justify-content:center"><button class="btn primary" data-act="nav" data-v="staff">Open staff master</button></div></section>`; return h; }
-  [['Dedicated','Dedicated project staff'],['Shared','Shared resources and heads of shared functions'],['Not tagged','Not tagged']].forEach(([k,title])=>{
+  const run = incentiveRun(S.month); const locked = !!run.fin;
+  if (locked) h += `<div class="banner good">Finalised on ${new Date(run.fin.at).toLocaleDateString('en-IN')} by ${esc(run.fin.by)}. Contribution % and gates are locked; final amounts can still be changed with a reason. Reopen from Finalise & adjust to recalculate.</div>`;
+  else if (!monthClosed(S.month)) h += `<div class="banner watch">${monthInfo(S.month).label} is not closed yet. Amounts use approved figures so far and change until Week ${monthInfo(S.month).N} is approved for every project.</div>`;
+  const prow = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; return `<tr><td>${esc(c.p.name)}</td><td class="num">${fmt(c.target)}</td><td class="num">${fmt(c.mtd)}</td><td class="num">${pctChip(c.pct)}</td>
+    <td style="width:140px"><select class="in" data-chg="gate" data-p="${c.pid}" ${locked?'disabled':''} aria-label="Safety and quality gate for ${esc(c.p.name)}">${Object.entries(GATES).map(([k,g])=>`<option value="${k}" ${q.gate===k?'selected':''}>${g.l}</option>`).join('')}</select></td>
+    <td style="min-width:150px"><input class="in" style="width:100%" data-chg="gateReason" data-p="${c.pid}" value="${esc(q.gateReason)}" placeholder="${q.gate!=='none'?'Reason required':'Incident / NCR, if any'}" ${locked?'disabled':''}></td>
+    <td class="num">${q.earnPct?`<span class="pct good">${q.earnPct}%</span>`:'<span class="faint">0%</span>'}</td><td class="num">${b.dedHeads}</td><td class="num">${(Math.round(b.shFte*10)/10)}</td><td class="num"><b style="font-weight:500">${rs(b.earned)}</b></td></tr>`; }).join('');
+  h += `<div class="kpis">${kpi(locked?'Payable (finalised)':'Payable so far',rs(run.total), Math.round(run.total)!==Math.round(run.calcTotal)?`calculated ${rs(run.calcTotal)}`:'')}${kpi('If every project reaches '+thr()+'%',rs(run.potential))}${kpi('Team members earning',run.rows.filter(r=>r.final>0).length+' / '+run.rows.length)}${kpi('Projects qualifying',run.pf.list.filter(c=>run.pmap[c.pid].earnPct>0).length+' / '+run.pf.list.length)}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>By project</h2><span class="muted small">Qualifies at ${thr()}% of target. The safety & quality gate can reduce or forfeit a project's rate for the month.</span></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Target</th><th class="num">Achieved</th><th class="num">%</th><th>Safety & quality gate</th><th>Gate reason</th><th class="num">Rate</th><th class="num">Dedicated</th><th class="num">Shared FTE</th><th class="num">Payout</th></tr></thead><tbody>${prow}</tbody></table></div></section>`;
+  if (!S.staff.length){ h += `<section class="panel">${emptyHTML('No team members loaded yet','Go to Team members, download the template, fill it and upload it.')}<div class="row" style="justify-content:center"><button class="btn primary" data-act="nav" data-v="staff">Open Team members</button></div></section>`; return h; }
+  const head = `<tr><th>Team member</th><th>Projects: weightage (achieved → rate)</th><th>Contribution %</th><th class="num">Monthly base</th><th class="num">Calculated and how</th><th class="num">% of base</th><th>Final amount (₹)</th><th>Reason</th></tr>`;
+  [['Dedicated','Dedicated project team members','Earn the full rate on their one project if it qualifies.'],['Shared','Shared resources and heads of shared functions','Earn the rate only on the weightage of each project that qualifies.'],['Not tagged','Not tagged','Set their projects to include them.']].forEach(([k,title,hint])=>{
     const rows = run.rows.filter(r=>r.type===k); if(!rows.length) return;
-    const tr = rows.map(r=>`<tr><td>${esc(r.name)}<div class="faint small">${esc(r.designation||'')}${r.department?' · '+esc(r.department):''}</div></td><td class="small">${r.lines.map(l=>`${esc(proj(l.pid)?.name)}${k==='Shared'?' '+Math.round(l.share)+'%':''} <span class="faint">(${l.pct==null?'–':Math.round(l.pct)+'%'} → ${l.rate}%)</span>`).join('<br>')||'<span class="faint">–</span>'}${r.issue?`<div class="small" style="color:var(--risk)">${esc(r.issue)}</div>`:''}</td><td class="small muted">${esc(r.rule)}</td><td class="num">${rs(r.base)}</td><td class="num"><b style="font-weight:500">${rs(r.earned)}</b></td>${run.fin?`<td class="num">${rs(r.final)}</td>`:''}</tr>`).join('');
-    h += `<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="muted small">${rows.length} people · ${rs(rows.reduce((s,r)=>s+r.earned,0))}</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Projects (achieved → rate)</th><th>Allocation rule</th><th class="num">Monthly base</th><th class="num">Calculated</th>${run.fin?'<th class="num">Final</th>':''}</tr></thead><tbody>${tr}</tbody></table></div></section>`;
+    h += `<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="muted small">${rows.length} team member${rows.length===1?'':'s'} · ${rs(rows.reduce((s,r)=>s+r.final,0))} · ${hint}</span></div><div class="tbl-wrap"><table><thead>${head}</thead><tbody>${memberRows(run,k,!locked)}</tbody></table></div></section>`;
   });
+  h += `<p class="faint small">Contribution % is the share of the month the person actually worked on their projects (100% for a full month). Final amount: leave blank to pay the calculated amount; type an amount only to change it, with a reason. Changes save when you leave the box.</p>`;
   return h;
+}
+async function setAmount(id, field, val){
+  const run = incentiveRun(S.month);
+  if (run.fin) return updateFinal(id, field==='amt'?'final':'reason', field==='amt' && val.trim()==='' ? String(Math.round(run.rows.find(r=>r.id===id)?.earned||0)) : val);
+  saveIncDoc(S.month, d=>{ d.adj ||= {}; const a = d.adj[id] ||= {}; if (field==='amt'){ if (val.trim()==='') delete a.amt; else a.amt=Math.max(0,Math.round(num(val))); } else a.reason=val.trim(); if (!has(a.amt) && !a.reason) delete d.adj[id]; }, field==='amt'?'Amount saved':'Reason saved');
 }
 function vFinalise(){
   const run = incentiveRun(S.month); const mi=monthInfo(S.month); const closed=monthClosed(S.month);
-  let h = topbar('Finalise & adjust', `${mi.label}. Lock the calculated amounts, then change any person's final amount with a reason.`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download full workbook</button>`);
-  if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No staff loaded yet','Upload the staff master first.')}</section>`;
+  let h = topbar('Finalise & adjust', `${mi.label}. Lock the month's amounts, then change any team member's final amount with a reason.`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download full workbook</button>`);
+  if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No team members loaded yet','Upload the Team members list first.')}</section>`;
   if (!run.fin){
-    h += `<div class="banner ${closed?'good':'watch'}">${closed?`${mi.label} is closed: every project's last week is approved.`:`${mi.label} is not closed yet. You can still finalise, but the amounts will not change if later weeks are approved.`}</div>`;
-    h += `<div class="kpis">${kpi('Calculated total',rs(run.calcTotal))}${kpi('People',run.rows.length)}${kpi('People earning',run.rows.filter(r=>r.earned>0).length)}</div>`;
-    h += `<section class="panel"><h2>Ready to finalise?</h2><p class="muted" style="margin:8px 0 16px;max-width:720px">Finalising takes a snapshot of every person's calculated incentive. After that you can change any amount, for example for a mid-month joiner, a leaver or someone on long leave, and record the reason. Reopening discards the snapshot and all changes.</p>
+    const changed = run.rows.filter(r=>r.adjusted).length;
+    h += `<div class="banner ${closed?'good':'watch'}">${closed?`${mi.label} is closed: every project's last week is approved.`:`${mi.label} is not closed yet. You can still finalise, but amounts will not change if later weeks are approved.`}</div>`;
+    h += `<div class="kpis">${kpi('Calculated',rs(run.calcTotal))}${kpi('Payable after your changes',rs(run.total), changed+' amount'+(changed===1?'':'s')+' changed')}${kpi('Team members',run.rows.length)}</div>`;
+    h += `<section class="panel"><h2>Ready to finalise?</h2><p class="muted" style="margin:8px 0 16px;max-width:720px">Finalising locks every team member's amount, contribution % and the project gates. After that you can still change individual amounts with a reason. Reopening removes the lock and returns to live calculation; changes made before finalising are kept.</p>
       <button class="btn primary" data-act="finalise">Finalise ${mi.label}</button></section>`;
     return h;
   }
   const f=run.fin; const changed = f.rows.filter(x=>Math.round(num(x.final))!==Math.round(num(x.calc)));
-  h += `<div class="banner good">Finalised on ${new Date(f.at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})} by ${esc(f.by)}. ${changed.length} amount${changed.length===1?'':'s'} changed from the calculation.</div>`;
-  h += `<div class="kpis">${kpi('Calculated',rs(f.rows.reduce((s,x)=>s+num(x.calc),0)))}${kpi('Final payable',rs(f.rows.reduce((s,x)=>s+num(x.final),0)))}${kpi('Net adjustment',rs(f.rows.reduce((s,x)=>s+num(x.final)-num(x.calc),0)))}</div>`;
-  const rows = f.rows.map(x=>`<tr><td style="min-width:190px">${esc(x.name)}<div class="faint small">${esc(x.designation||'')}${x.department?' · '+esc(x.department):''}</div></td><td>${esc(x.type)}</td><td class="small">${esc(x.alloc)}</td><td class="num">${rs(num(x.calc))}</td>
+  h += `<div class="banner good">Finalised on ${new Date(f.at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})} by ${esc(f.by)}. ${changed.length} amount${changed.length===1?'':'s'} differ from the calculation.</div>`;
+  h += `<div class="kpis">${kpi('Calculated',rs(f.rows.reduce((s,x)=>s+num(x.calc),0)))}${kpi('Final payable',rs(f.rows.reduce((s,x)=>s+num(x.final),0)))}${kpi('Net change',rs(f.rows.reduce((s,x)=>s+num(x.final)-num(x.calc),0)).replace('₹-','-₹'))}</div>`;
+  const rows = f.rows.map(x=>`<tr><td style="min-width:190px">${esc(x.name)}<div class="faint small">${esc(x.designation||'')}${x.department?' · '+esc(x.department):''}</div></td><td>${esc(x.type)}</td><td class="small">${esc(x.alloc)}<div class="faint">${x.contrib!=null&&x.contrib<100?'Contribution '+x.contrib+'%':''}</div></td><td class="num">${rs(num(x.calc))}</td>
     <td style="width:150px"><input class="cell" inputmode="decimal" data-chg="finAmt" data-id="${esc(x.id)}" value="${Math.round(num(x.final))}" aria-label="Final amount for ${esc(x.name)}"></td>
     <td style="width:28%"><input class="in" style="width:100%" data-chg="finReason" data-id="${esc(x.id)}" value="${esc(x.reason||'')}" placeholder="${Math.round(num(x.final))!==Math.round(num(x.calc))?'Reason required':''}" aria-label="Reason for ${esc(x.name)}"></td>
     <td class="num">${Math.round(num(x.final))!==Math.round(num(x.calc))?`<span class="pct ${num(x.final)>num(x.calc)?'good':'risk'}">${num(x.final)>num(x.calc)?'+':''}${rs(num(x.final)-num(x.calc)).replace('₹-','-₹')}</span>`:'<span class="faint">–</span>'}</td></tr>`).join('');
-  h += `<section class="panel"><div class="panel-head"><h2>Final amounts</h2><button class="btn danger sm" data-act="unfinalise">Reopen calculation</button></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Allocation</th><th class="num">Calculated</th><th>Final amount (₹)</th><th>Reason for change</th><th class="num">Change</th></tr></thead><tbody>${rows}</tbody></table></div>
+  h += `<section class="panel"><div class="panel-head"><h2>Final amounts</h2><button class="btn danger sm" data-act="unfinalise">Reopen calculation</button></div><div class="tbl-wrap"><table><thead><tr><th>Team member</th><th>Type</th><th>Allocation</th><th class="num">Calculated</th><th>Final amount (₹)</th><th>Reason for change</th><th class="num">Change</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="faint small" style="margin-top:10px">Changes save as soon as you leave the box.</p></section>`;
   return h;
 }
 async function finaliseMonth(){
   const run = incentiveRun(S.month); const mi=monthInfo(S.month);
-  if (!(await ask(`Finalise ${mi.label}?`, monthClosed(S.month)?`This locks ${rs(run.calcTotal)} for ${run.rows.length} people. You can still adjust individual amounts afterwards.`:`${mi.label} is not closed yet. Amounts will be locked at today's figures.`, 'Finalise'))) return;
-  const rows = run.rows.map(r=>({id:r.id,name:r.name,designation:r.designation,department:r.department,location:r.location,type:r.type,rule:r.rule,alloc:allocText(r),base:r.base,
-    lines:r.lines.map(l=>({pid:l.pid,project:proj(l.pid)?.name,share:l.share,pct:l.pct,rate:l.rate,amt:Math.round(l.e)})),calc:Math.round(r.earned),final:Math.round(r.earned),reason:''}));
-  const d = {...(S.inc[S.month]||{}), month:S.month, finalized:{at:new Date().toISOString(), by:S.user.name, rows}};
-  S.inc[S.month]=d; try{ await Store.set('incentives',S.month,d); toast('Finalised'); render(); }catch(e){ toast('Could not save: '+e.message); }
+  if (!(await ask(`Finalise ${mi.label}?`, `${monthClosed(S.month)?'':mi.label+' is not closed yet; amounts lock at today\'s figures. '}This locks ${rs(run.total)} for ${run.rows.length} team members.`, 'Finalise'))) return;
+  const rows = run.rows.map(r=>({id:r.id,name:r.name,designation:r.designation,department:r.department,location:r.location,type:r.type,rule:r.rule,alloc:allocText(r),base:r.base,contrib:r.contrib,working:r.working,effPct:Math.round(r.effPct*100)/100,
+    lines:r.lines.map(l=>({pid:l.pid,project:proj(l.pid)?.name,share:l.share,pct:l.pct,rate:l.rate,amt:Math.round(l.e)})),calc:Math.round(r.earned),final:Math.round(r.final),reason:r.reason||''}));
+  const gates = {}; Object.entries(run.pmap).forEach(([pid,q])=>gates[pid]={mode:q.gate,reason:q.gateReason,rate:q.earnPct,pct:q.c.pct});
+  saveIncDoc(S.month, d=>{ d.finalized={at:new Date().toISOString(), by:S.user.name, rows, gates}; }, 'Finalised');
 }
 async function updateFinal(id, field, val){
-  const d = JSON.parse(JSON.stringify(S.inc[S.month])); const x = d.finalized.rows.find(r=>r.id===id); if(!x) return;
-  if (field==='final') x.final = Math.max(0, Math.round(num(val))); else x.reason = val.trim();
-  d.finalized.editedAt=new Date().toISOString();
-  S.inc[S.month]=d; try{ await Store.set('incentives',S.month,d); toast(field==='final'?'Amount updated':'Reason saved'); if (field==='final') render(); }catch(e){ toast('Could not save: '+e.message); }
+  saveIncDoc(S.month, d=>{ const x = d.finalized?.rows.find(r=>r.id===id); if(!x) return; if (field==='final') x.final = Math.max(0, Math.round(num(val))); else x.reason = String(val).trim(); d.finalized.editedAt=new Date().toISOString(); }, field==='final'?'Amount updated':'Reason saved');
 }
+/* ---------- allocation editor: projects and weightage for a team member ---------- */
+function editAllocation(id){
+  const r = S.staff.find(x=>x.id===id); if(!r) return; const a = allocation(r, S.month); const d=$('#dlg');
+  const mode = a.type==='Dedicated' ? 'ded' : /^all(\s*equal)?$/i.test(String(r.shared||'').trim()) ? 'all' : 'sh';
+  const cur = {}; a.alloc.forEach(x=>cur[x.pid]=Math.round(x.share*10)/10);
+  d.innerHTML = `<h2>${esc(r.name)}: projects and weightage</h2><p class="muted small" style="margin:6px 0 14px">${esc(r.designation||'')}${r.department?' · '+esc(r.department):''}</p>
+    <div class="seg" role="group" style="margin-bottom:14px"><button type="button" data-m="ded" class="${mode==='ded'?'on':''}">Dedicated</button><button type="button" data-m="sh" class="${mode==='sh'?'on':''}">Shared (set %)</button><button type="button" data-m="all" class="${mode==='all'?'on':''}">All projects by target</button></div>
+    <div data-pane="ded" ${mode!=='ded'?'hidden':''}><label class="lbl" for="alDed">Project</label><select class="in" id="alDed" style="width:100%">${S.config.projects.map(p=>`<option value="${esc(p.name)}" ${cur[p.id]===100&&mode==='ded'?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div data-pane="sh" ${mode!=='sh'?'hidden':''}><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Weightage %</th></tr></thead><tbody>${S.config.projects.map(p=>`<tr><td>${esc(p.name)}</td><td style="width:130px"><input class="cell" inputmode="decimal" data-alp="${esc(p.name)}" value="${mode==='sh'&&cur[p.id]?cur[p.id]:''}" placeholder="0" aria-label="${esc(p.name)} weightage"></td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="margin-top:8px"><span class="small" id="alTot"></span><span class="spacer"></span><button type="button" class="btn sm" id="alEq">Split equally across filled rows</button></div></div>
+    <div data-pane="all" ${mode!=='all'?'hidden':''}><p class="small muted">Weightage follows each project's month target and is recalculated every month. Use for heads of shared functions.</p></div>
+    <div class="row" style="justify-content:flex-end;margin-top:18px"><button type="button" class="btn" data-x="0">Cancel</button><button type="button" class="btn primary" data-x="1">Save</button></div>`;
+  let m = mode; const tot = ()=>{ let t=0; d.querySelectorAll('[data-alp]').forEach(i=>t+=num(i.value)); const el=d.querySelector('#alTot'); el.textContent=`Total ${Math.round(t*10)/10}%`; el.style.color = Math.abs(t-100)<0.05 ? 'var(--good)' : 'var(--risk)'; return t; };
+  d.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ m=b.dataset.m; d.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b)); d.querySelectorAll('[data-pane]').forEach(p=>p.hidden = p.dataset.pane!==m); });
+  d.querySelectorAll('[data-alp]').forEach(i=>i.oninput=tot); tot();
+  d.querySelector('#alEq').onclick=()=>{ const f=[...d.querySelectorAll('[data-alp]')].filter(i=>num(i.value)>0); if(!f.length) return; f.forEach(i=>i.value=Math.round(1000/f.length)/10); tot(); };
+  d.querySelector('[data-x="0"]').onclick=()=>d.close();
+  d.querySelector('[data-x="1"]').onclick=async()=>{
+    const row = {...r};
+    if (m==='ded'){ row.dedicated=d.querySelector('#alDed').value; row.shared=''; }
+    else if (m==='all'){ row.dedicated=''; row.shared='All'; }
+    else { const parts=[...d.querySelectorAll('[data-alp]')].filter(i=>num(i.value)>0).map(i=>`${i.dataset.alp}:${Math.round(num(i.value)*10)/10}`); const t=tot();
+      if (!parts.length) return toast('Give at least one project a weightage'); if (Math.abs(t-100)>0.05) return toast(`Weightage adds up to ${Math.round(t*10)/10}%; it must total 100%`);
+      row.dedicated=''; row.shared=parts.join(', '); }
+    S.staff = S.staff.map(x=>x.id===id?row:x); d.close();
+    try{ await Store.set('app','staff',{rows:S.staff, updatedAt:new Date().toISOString()}); toast('Projects and weightage saved'); render(); }catch(err){ toast('Could not save: '+err.message); }
+  };
+  d.showModal();
+}
+/* ---------- Project Incentive Policy (live: figures follow Settings) ---------- */
 function vPolicy(){
-  const st=S.config.settings; const T=thr(); const rate=slabPct(T); const base = st.base==='ctc'?'monthly CTC':'monthly gross';
-  const slabs = st.slabs.slice().sort((a,b)=>a.min-b.min);
-  const ex = (b,share,r) => Math.round(b*share/100*r/100);
-  return topbar('Incentive policy','How project incentive is calculated, who it covers and how it is governed.','','none') + `<section class="panel guide" style="max-width:980px">
-  <h2 style="margin-top:0">1. Principle</h2><p>Incentive rewards the people who make a project deliver its monthly target. It is earned project by project: a project that crosses the line pays its team, a project that does not pays nothing, and one project's surplus never covers another project's shortfall.</p>
-  <h2>2. When a project qualifies</h2><div class="formula">Project achievement % = approved achievement for the month ÷ month target × 100
-Qualifies when achievement % ≥ ${T}%</div>
-  <ul><li>Only figures approved by the cluster head count. Drafts and pending weeks are ignored.</li><li>The month is final when the last week (Week ${monthInfo(S.month).N} of ${monthInfo(S.month).label}) is approved for every project.</li><li>Targets are locked once any week of the month is approved, so the bar cannot move after the fact.</li></ul>
-  <h2>3. Rate</h2><div class="formula">${slabs.map(s=>`Achievement ≥ ${s.min}%  →  ${s.pct}% of ${base}`).join('\n')}
-Below ${slabs[0].min}%  →  nil</div>
-  <h2>4. Formula for every person</h2><div class="formula">Incentive = Σ over each project the person is allocated to:
-            ${base} × allocation share % × project rate %</div>
-  <h3>Dedicated project staff</h3><p>100% of their time is on one project, so they earn fully on that project.</p>
-  <div class="formula">Example: Site engineer on Marvel, ${base} ₹60,000. Marvel reaches ${T}%.
-₹60,000 × 100% × ${rate}% = ₹${nf0.format(ex(60000,100,rate))}</div>
-  <h3>Shared resources</h3><p>People who support several projects (QS, MEP, planning, safety). Their base is split across the projects they support, and they earn only on the share belonging to projects that qualify.</p>
-  <div class="formula">Example: QS engineer, ${base} ₹90,000, Shared "Marvel:60, Miraya:40".
-Marvel qualifies, Miraya does not.
-₹90,000 × 60% × ${rate}% + ₹90,000 × 40% × 0% = ₹${nf0.format(ex(90000,60,rate))}</div>
-  <h3>Heads of shared functions (HOD Contracts, Planning, Purchase and similar)</h3><p>They influence every project, but larger projects carry more of the business. Mark them <b>All</b> in the Shared column: their base is spread across all projects in proportion to each project's month target. Use <b>All equal</b> only when an equal split is intended.</p>
-  <div class="formula">Example: HOD Contracts, ${base} ₹2,00,000, Shared "All".
-Targets: Marvel 400, Miraya 400, Midas City 200 (total 1,000) → shares 40%, 40%, 20%.
-Marvel and Midas City qualify: ₹2,00,000 × (40% + 20%) × ${rate}% = ₹${nf0.format(ex(200000,60,rate))}</div>
-  <h2>5. What the staff master must say</h2><ul><li><b>Dedicated:</b> the project name (or Yes, with the project in Location).</li><li><b>Shared:</b> project names (equal split), names with shares (Marvel:60, Miraya:40), All (target-weighted) or All equal.</li><li>Fill only one of the two. Base pay is taken from ${st.base==='ctc'?'Monthly CTC':'Monthly Gross'} (change in Settings).</li></ul>
-  <h2>6. Adjustments and governance</h2><ul>
-   <li><b>Finalise</b> the month in Finalise & adjust once it is closed. Amounts are then locked.</li>
-   <li><b>Pro-rate</b> for mid-month joiners and leavers by days on the rolls; enter the adjusted amount with the reason.</li>
-   <li><b>Withhold</b> for people serving notice, on long unpaid leave, or under a disciplinary process; record the reason.</li>
-   <li><b>Recover</b> in the following month if approved figures are later found wrong; record the recovery as a reduction with the reason.</li>
-   <li>Pay with the following month's salary after CEO sign-off. The downloadable workbook is the payroll input and the audit record.</li></ul>
-  <h2>7. Design notes</h2><div class="note">A single ${T}% gate is simple to explain but creates a cliff: ${T-1}% pays nothing, ${T}% pays everything. If projects start bunching figures just above the line, add a partial slab (for example 70–79% paying half the rate) and an accelerator above 100% in Settings. Review the rule after two quarters of data.</div>
+  const st=S.config.settings; const T=thr(); const rate=slabPct(T); const base = st.base==='ctc'?'monthly CTC':'monthly gross salary';
+  const slabs = st.slabs.slice().sort((a,b)=>a.min-b.min); const nf1 = v=>nf0.format(Math.round(v));
+  const run = S.staff.length ? incentiveRun(S.month) : null;
+  const ex = run ? run.rows.filter(r=>r.type!=='Dedicated' && r.working).concat(run.rows.filter(r=>r.type==='Dedicated' && r.earned>0).slice(0,2)).slice(0,8) : [];
+  const exTable = ex.length ? `<div class="tbl-wrap"><table><thead><tr><th>Team member</th><th>Weightage</th><th>How the amount is worked out</th><th class="num">% of base</th></tr></thead><tbody>${ex.map(r=>`<tr><td>${esc(r.name)}<div class="faint small">${esc(r.type)}</div></td><td class="small">${esc(allocText(r))}</td><td class="small">${esc(r.working)}</td><td class="num">${pctS(r.effPct)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="small muted">"% of base" is simply the weightage on qualifying projects × the rate × contribution. With only one project qualifying at ${rate}%, a person with 33.3% on it earns 33.3% × ${rate}% = 10% of base; 40% on it earns 12%; 29% on it earns 8.7%.</p>` : '<p class="muted">Load the Team members list to see this month\'s worked examples here.</p>';
+  return topbar('Incentive policy','Project Incentive Plan · Mangalam Landmarks','','none') + `<section class="panel guide" style="max-width:1000px">
+  <p class="small muted">Version for ${fyLabel(S.month)}. Figures below follow the current Settings (line ${T}%, rate ${rate}%, base ${base}).</p>
+  <h2 style="margin-top:8px">1. Purpose</h2><p>To reward project teams for delivering each month's construction target, and to make the reward simple enough that every team member can calculate it. The plan pays for team results, earned project by project.</p>
+  <h2>2. Who is covered</h2><ul>
+    <li>Every team member listed in <b>Team members</b> who works on a project or supports projects: project managers, engineers, supervisors, QS, MEP, planning, safety, quality, and heads of shared functions.</li>
+    <li>Confirmed team members and those on probation are both covered.</li>
+    <li>Not covered: contract labour, consultants and retainers, interns and trainees unless listed, and anyone on another variable-pay plan (for example sales incentive) for the same work.</li></ul>
+  <h2>3. Definitions</h2><ul>
+    <li><b>Month target:</b> each building's target for the month in ${esc(st.unit)}, set in Week 1 and locked once any week is approved.</li>
+    <li><b>Approved achievement:</b> achievement to date at month end, approved by the cluster head (or CEO where there is no cluster head).</li>
+    <li><b>Achievement %:</b> approved achievement ÷ month target × 100, for the project as a whole.</li>
+    <li><b>Base:</b> ${base} for the month.</li>
+    <li><b>Weightage:</b> the share of the person's role that belongs to each project. Always 100% in total.</li>
+    <li><b>Contribution %:</b> the share of the month the person actually worked on those projects. 100% for a full month.</li></ul>
+  <h2>4. When a project qualifies</h2><div class="formula">Project qualifies when Achievement % ≥ ${T}%</div>
+  <ul><li>Only approved figures count. The month closes when its last week is approved for every project.</li><li>A project that qualifies pays its whole team; one that does not pays nothing. One project's surplus never covers another project's shortfall.</li></ul>
+  <h2>5. Rate</h2><div class="formula">${slabs.map(s=>`Achievement ≥ ${s.min}%   →   ${s.pct}% of base`).join('\n')}
+Achievement below ${slabs[0].min}%   →   nil</div>
+  <h2>6. The formula</h2><div class="formula">Incentive = Base × Contribution % × Σ (Weightage on each project × that project's rate)</div>
+  <h3>6.1 Dedicated project team members</h3><p>Weightage is 100% on one project. If that project reaches ${T}%, they receive ${rate}% of their ${base}.</p>
+  <div class="formula">Site engineer on Marvel, base ₹60,000, full month. Marvel reaches ${T}%.
+₹60,000 × 100% × (100% × ${rate}%) = ₹${nf1(60000*rate/100)}</div>
+  <h3>6.2 Shared resources</h3><p>People who support several projects (QS, MEP, planning, safety). Their weightage is split across those projects, set in <b>Edit projects and weightage</b>. They earn only on the weightage that belongs to qualifying projects.</p>
+  <div class="formula">QS engineer, base ₹85,000, weightage Marvel 33.3%, Midas City 33.3%, Mithila-01 33.3%.
+Only Marvel qualifies: ₹85,000 × (33.3% × ${rate}% + 33.3% × 0% + 33.3% × 0%) = ₹${nf1(85000/3*rate/100)}  (${Math.round(rate/3*10)/10}% of base)
+If all three had qualified: ₹85,000 × 100% × ${rate}% = ₹${nf1(85000*rate/100)}  (${rate}% of base)</div>
+  <h3>6.3 Heads of shared functions</h3><p>Heads of Contracts, Planning, Purchase, Safety, Quality and similar influence every project, but larger projects carry more of the business. Their weightage is set to <b>All projects by target</b>: each project's weightage equals its share of the month's total target, recalculated every month.</p>
+  <div class="formula">Head of Safety, base ₹70,000. Targets: Marvel 425 of a total 1,467 → weightage 29.0%.
+Only Marvel qualifies: ₹70,000 × 29.0% × ${rate}% = ₹${nf1(70000*425/1467*rate/100)}  (${Math.round(425/1467*rate*10)/10}% of base)</div>
+  <h3>6.4 This month's worked examples</h3>${exTable}
+  <h2>7. Contribution % (partial months)</h2><p>Incentive follows time actually spent on the projects. Contribution % is set in the Team members template for the default and can be changed for any month on the Incentive calculation screen.</p>
+  <div class="formula">Contribution % = days worked on the project(s) in the month ÷ working days in the month × 100</div>
+  <ul><li><b>Joined mid-month:</b> from the joining date. Joined on the 16th of a 26-working-day month after 12 working days: 12 ÷ 26 = 46%.</li>
+    <li><b>Left mid-month:</b> up to the last working day, subject to section 10.</li>
+    <li><b>Leave:</b> paid leave up to 3 working days in the month counts as worked. Beyond that, reduce for the extra days. Statutory leave (including maternity) is reduced only for the days absent, never beyond.</li>
+    <li><b>Transferred between projects:</b> keep 100% contribution and set the weightage by days on each project (for example 10 days Marvel, 16 days Miraya → 38% / 62%).</li></ul>
+  <h2>8. Safety and quality gate</h2><p>Construction targets must never be bought with unsafe or poor-quality work. For each project and month the CEO can apply a gate on the Incentive calculation screen, with a written reason:</p>
+  <ul><li><b>Forfeit</b> (rate becomes 0): a fatal or lost-time accident at site; a stop-work notice from an authority; a major structural non-conformance.</li>
+    <li><b>Reduce 50%</b>: a reportable incident without lost time; a repeat quality non-conformance not closed within the month; a failed third-party quality audit.</li>
+    <li><b>Clear</b>: the default.</li></ul>
+  <h2>9. Approval, payment and communication</h2><ol>
+    <li>Cluster heads approve weekly figures; the month closes when the last week is approved.</li>
+    <li>HR updates Team members (joiners, leavers, transfers, contribution %) by the 3rd working day of the next month.</li>
+    <li>The CEO reviews Incentive calculation, applies gates and changes, and finalises by the 7th.</li>
+    <li>Paid with the salary of the month in which it is finalised. Each team member receives a statement showing their projects, weightage, contribution, rate and amount (the downloadable workbook carries the working for every person).</li></ol>
+  <h2>10. Conditions</h2><ul>
+    <li>The team member must be on the rolls on the payment date. Exceptions: retirement, death, and company-initiated transfer, where the earned amount is paid.</li>
+    <li>Serving notice: eligible for months fully worked before the notice started; the notice month at the CEO's discretion.</li>
+    <li>Under disciplinary proceedings: withheld until closure. Termination for misconduct: forfeited.</li>
+    <li>Misreported figures: the incentive paid on them is recovered from future incentive, and disciplinary action may follow. Genuine corrections are adjusted in the next month.</li></ul>
+  <h2>11. Tax and statutory treatment</h2><p>The incentive is taxable as salary, and TDS applies in the month of payment. It is variable and performance-linked. Payroll and legal should confirm how it is treated for PF, ESIC, gratuity and bonus, including under the wage definition in the Labour Codes, before the first payout.</p>
+  <h2>12. Governance</h2><ul><li>The CEO approves every month's payout. Every change to a calculated amount carries a reason and is kept in the record.</li><li>The plan is reviewed every year, and after the first two quarters of operation. It may be changed with one month's notice to the team.</li></ul>
+  <h2>13. Practices from other industries, and what is recommended here</h2>
+  <div class="tbl-wrap"><table><thead><tr><th>Practice</th><th>Where it comes from</th><th>Recommendation</th></tr></thead><tbody>
+    <tr><td>Partial slab below the line (for example 70–79% pays half the rate)</td><td>Manufacturing, FMCG sales</td><td>Recommended after two quarters if figures bunch just above ${T}%. Add in Settings.</td></tr>
+    <tr><td>Accelerator above 100% (for example 110%+ pays 35%)</td><td>Sales, telecom</td><td>Use only if targets are set honestly; otherwise it rewards soft targets. Add in Settings.</td></tr>
+    <tr><td>Quarterly true-up: if the quarter reaches ${T}%, pay missed months</td><td>IT services, pharma</td><td>Recommended. Construction work shifts between months (monsoon, approvals). Pay the difference at quarter end through the Final amount column.</td></tr>
+    <tr><td>Holdback: pay 80% monthly, 20% at quarter end</td><td>Banking, BFSI</td><td>Optional. Protects against figure inflation and helps retention.</td></tr>
+    <tr><td>Individual modifier within a team (±20%)</td><td>Manufacturing, services</td><td>Use sparingly through Final amount with a reason; the plan is team-first.</td></tr>
+    <tr><td>Safety and quality gate</td><td>Infrastructure, oil & gas, EPC</td><td><b>Built in</b> (section 8).</td></tr>
+    <tr><td>Milestone bonus for on-time OC and possession</td><td>Real estate</td><td>Recommended as a separate one-time project bonus, not in this monthly plan.</td></tr>
+  </tbody></table></div>
   </section>`;
 }
-/* ---------- staff master ---------- */
-const STAFF_COLS = [['name','Name'],['designation','Designation'],['department','Department'],['dedicated','Dedicated'],['shared','Shared'],['location','Location'],['gross','Monthly Gross'],['ctcYear','Yearly CTC'],['ctcMonth','Monthly CTC']];
+/* ---------- team members master ---------- */
+const STAFF_COLS = [['name','Name'],['designation','Designation'],['department','Department'],['dedicated','Dedicated'],['shared','Shared'],['location','Location'],['gross','Monthly Gross'],['ctcYear','Yearly CTC'],['ctcMonth','Monthly CTC'],['contribution','Contribution %']];
 function vStaff(){
-  let h = topbar('Staff master', 'People covered by project incentive. Upload the filled template to replace the list.', `<button class="btn" data-act="template">Download template</button><label class="btn primary" style="display:inline-block">Upload filled template<input type="file" accept=".xlsx,.xls,.csv" data-chg="upload" hidden></label>`,'none');
-  if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No staff yet','Download the template, fill one row per person, and upload it here.')}<div class="small muted" style="max-width:640px;margin:0 auto 10px">${templateHelp()}</div></section>`;
-  const rows = S.staff.map(r=>{ const a=allocation(r,S.month); return `<tr><td>${esc(r.name)}</td><td>${esc(r.designation)}</td><td>${esc(r.department)}</td><td>${a.type}</td><td>${a.alloc.map(x=>esc(proj(x.pid)?.name)+(a.type==='Shared'?' '+Math.round(x.share)+'%':'')).join(', ')}${a.issue?`<div class="small" style="color:var(--risk)">${esc(a.issue)}</div>`:''}</td><td>${esc(r.location)}</td><td class="num">${rs(num(r.gross))}</td><td class="num">${rs(num(r.ctcMonth))}</td><td class="num">${rs(num(r.ctcYear))}</td><td><button class="btn ghost sm" data-act="delStaff" data-id="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">Remove</button></td></tr>`; }).join('');
+  let h = topbar('Team members', 'Everyone covered by project incentive. Upload the filled template to replace the list; set each person\'s projects and weightage here.', `<button class="btn" data-act="template">Download template</button><label class="btn primary" style="display:inline-block">Upload filled template<input type="file" accept=".xlsx,.xls,.csv" data-chg="upload" hidden></label>`,'none');
+  if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No team members yet','Download the template, fill one row per person, and upload it here.')}<div class="small muted" style="max-width:680px;margin:0 auto 10px">${templateHelp()}</div></section>`;
+  const rows = S.staff.map(r=>{ const a=allocation(r,S.month); return `<tr><td>${esc(r.name)}<div class="faint small">${esc(r.designation)}${r.department?' · '+esc(r.department):''}</div></td><td>${a.type}</td><td class="small">${a.alloc.map(x=>esc(proj(x.pid)?.name)+(a.type==='Shared'?' '+Math.round(x.share*10)/10+'%':'')).join(', ')}${a.issue?`<div class="small" style="color:var(--risk)">${esc(a.issue)}</div>`:''}<div class="faint">${esc(a.rule)}</div><button class="btn ghost sm" style="padding-left:0" data-act="editAlloc" data-id="${esc(r.id)}">Edit projects and weightage</button></td><td>${esc(r.location)}</td><td class="num">${has(r.contribution)?num(r.contribution):100}%</td><td class="num">${rs(num(r.gross))}</td><td class="num">${rs(num(r.ctcMonth))}</td><td class="num">${rs(num(r.ctcYear))}</td><td><button class="btn ghost sm" data-act="delStaff" data-id="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">Remove</button></td></tr>`; }).join('');
   const issues = S.staff.filter(r=>allocation(r,S.month).issue).length;
-  h += `${issues?`<div class="banner risk">${issues} ${issues>1?'people have':'person has'} a project that could not be matched. Fix the Dedicated or Shared column and upload again.</div>`:''}
-  <section class="panel"><div class="panel-head"><h2>${S.staff.length} people</h2><button class="btn danger sm" data-act="clearStaff">Remove all</button></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Type</th><th>Projects</th><th>Location</th><th class="num">Monthly gross</th><th class="num">Monthly CTC</th><th class="num">Yearly CTC</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>
+  h += `${issues?`<div class="banner risk">${issues} team member${issues>1?'s have':' has'} a project that could not be matched. Use "Edit projects and weightage" to fix it.</div>`:''}
+  <section class="panel"><div class="panel-head"><h2>${S.staff.length} team members</h2><button class="btn danger sm" data-act="clearStaff">Remove all</button></div><div class="tbl-wrap"><table><thead><tr><th>Team member</th><th>Type</th><th>Projects and weightage</th><th>Location</th><th class="num">Default contribution</th><th class="num">Monthly gross</th><th class="num">Monthly CTC</th><th class="num">Yearly CTC</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>
   <section class="panel"><h3 style="margin-bottom:6px">How the template is read</h3><div class="small muted">${templateHelp()}</div></section>`;
   return h;
 }
 function templateHelp(){ const names = S.config.projects.map(p=>p.name).join(', ');
-  return `<p><b style="font-weight:500">Dedicated:</b> the project name (for example Marvel), or Yes to use the Location column as the project.</p><p style="margin-top:4px"><b style="font-weight:500">Shared:</b> projects separated by commas. Equal split by default (Marvel, Miraya); unequal with a colon (Marvel:60, Miraya:40); All for heads of shared functions (every project, weighted by month target); All equal for an equal split across every project.</p><p style="margin-top:4px">Fill only one of Dedicated or Shared. Valid project names: ${esc(names)}.</p>`; }
+  return `<p><b style="font-weight:500">Dedicated:</b> the project name (for example Marvel), or Yes to use the Location column as the project.</p><p style="margin-top:4px"><b style="font-weight:500">Shared:</b> projects with weightage, for example Marvel:60, Miraya:40 (must total 100). Projects without numbers split equally. <b style="font-weight:500">All</b> for heads of shared functions (weighted by month target); <b style="font-weight:500">All equal</b> for an equal split across every project.</p><p style="margin-top:4px"><b style="font-weight:500">Contribution %:</b> 100 for a full month. Enter less for someone who will not be on the project for the whole period; it can also be changed month by month on the Incentive calculation screen.</p><p style="margin-top:4px">Fill only one of Dedicated or Shared. Valid project names: ${esc(names)}.</p>`; }
 function downloadTemplate(){
-  const ws = XLSX.utils.aoa_to_sheet([STAFF_COLS.map(c=>c[1])]); ws['!cols']=STAFF_COLS.map((c,i)=>({wch:i===0?26:16}));
-  const help = XLSX.utils.aoa_to_sheet([['How to fill'],['Dedicated','Project name (e.g. Marvel) or "Yes" to use Location as the project'],['Shared','Comma-separated projects. Equal split: Marvel, Miraya. Unequal: Marvel:60, Miraya:40. Heads of shared functions: All (weighted by month target) or All equal'],['Rule','Fill only one of Dedicated / Shared per person'],['Amounts','Monthly Gross, Yearly CTC, Monthly CTC in rupees, numbers only'],[],['Valid project names'],...S.config.projects.map(p=>[p.name])]);
-  help['!cols']=[{wch:22},{wch:90}];
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Staff'); XLSX.utils.book_append_sheet(wb, help, 'Instructions');
-  saveFile('Project_Incentive_Staff_Template.xlsx', wbBlob(wb));
+  const ws = XLSX.utils.aoa_to_sheet([STAFF_COLS.map(c=>c[1]), ['Example: Site Engineer','Site Engineer','Projects','Marvel','','Marvel',60000,806400,67200,100], ['Example: QS Engineer','QS Engineer','Contracts','','Marvel:60, Miraya:40','Head Office',85000,1142400,95200,100], ['Example: Head of Safety','HOD Safety','EHS','','All','Head Office',150000,2016000,168000,100]]);
+  ws['!cols']=STAFF_COLS.map((c,i)=>({wch:i===0?26:i===4?24:15}));
+  const help = XLSX.utils.aoa_to_sheet([['How to fill (delete the three example rows before uploading)'],['Dedicated','Project name (e.g. Marvel) or "Yes" to use Location as the project'],['Shared','Projects with weightage: Marvel:60, Miraya:40 (total 100). Without numbers they split equally. Heads of shared functions: All (weighted by month target) or All equal'],['Contribution %','100 for a full month. Less if the person will not be on the project(s) for the whole month, e.g. 50 for half'],['Rule','Fill only one of Dedicated / Shared per team member'],['Amounts','Monthly Gross, Yearly CTC, Monthly CTC in rupees, numbers only'],[],['Valid project names'],...S.config.projects.map(p=>[p.name])]);
+  help['!cols']=[{wch:22},{wch:100}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Team members'); XLSX.utils.book_append_sheet(wb, help, 'Instructions');
+  saveFile('Project_Incentive_Team_Members_Template.xlsx', wbBlob(wb));
 }
 async function uploadStaff(file){
   try{
-    const buf = await file.arrayBuffer(); const wb = XLSX.read(buf,{type:'array'}); const ws = wb.Sheets['Staff'] || wb.Sheets[wb.SheetNames[0]];
+    const buf = await file.arrayBuffer(); const wb = XLSX.read(buf,{type:'array'}); const ws = wb.Sheets['Team members'] || wb.Sheets['Staff'] || wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws,{defval:''});
     const norm = s => String(s).toLowerCase().replace(/[^a-z]/g,'');
-    const map = {name:['name','employeename','empname'],designation:['designation'],department:['department','dept'],dedicated:['dedicated'],shared:['shared'],location:['location'],gross:['monthlygross','gross','monthlygorss'],ctcYear:['yearlyctc','annualctc','ctcyearly'],ctcMonth:['monthlyctc','ctcmonthly']};
+    const map = {name:['name','teammember','teammembername','employeename','empname'],designation:['designation'],department:['department','dept'],dedicated:['dedicated'],shared:['shared'],location:['location'],gross:['monthlygross','gross','monthlygorss'],ctcYear:['yearlyctc','annualctc','ctcyearly'],ctcMonth:['monthlyctc','ctcmonthly'],contribution:['contribution','contributionpct','contributionpercent']};
     const out = rows.map((r,i)=>{ const o={}; const keys=Object.keys(r); Object.entries(map).forEach(([k,al])=>{ const hit=keys.find(x=>al.includes(norm(x))); o[k]= hit!=null? r[hit] : ''; });
       ['gross','ctcYear','ctcMonth'].forEach(k=>o[k]=num(o[k])); ['name','designation','department','dedicated','shared','location'].forEach(k=>o[k]=String(o[k]).trim());
-      if (!o.ctcMonth && o.ctcYear) o.ctcMonth = Math.round(o.ctcYear/12); o.id = 's'+(i+1)+'-'+slug(o.name).slice(0,40); return o; }).filter(o=>o.name);
+      { const raw=String(o.contribution??'').trim(); let v = has(raw.replace('%','')) ? num(raw.replace('%','')) : 100; if (typeof o.contribution==='number' && v>0 && v<=1) v*=100; o.contribution = Math.max(0,Math.min(100,v)); }
+      if (!o.ctcMonth && o.ctcYear) o.ctcMonth = Math.round(o.ctcYear/12); o.id = 's'+(i+1)+'-'+slug(o.name).slice(0,40); return o; }).filter(o=>o.name && !/^example/i.test(o.name));
     if (!out.length) return toast('No rows found. Keep the header row from the template.');
-    const ok = await ask('Replace staff list?', `${out.length} people found in ${file.name}. This replaces the current list of ${S.staff.length}.`, 'Replace list'); if(!ok) return;
-    S.staff = out; await Store.set('app','staff',{rows:out, uploadedAt:new Date().toISOString()}); toast(out.length+' people loaded'); render();
+    const ok = await ask('Replace the team members list?', `${out.length} team members found in ${file.name}. This replaces the current list of ${S.staff.length}.`, 'Replace list'); if(!ok) return;
+    S.staff = out; await Store.set('app','staff',{rows:out, uploadedAt:new Date().toISOString()}); toast(out.length+' team members loaded'); render();
   }catch(e){ toast('Could not read that file: '+e.message); }
 }
 
@@ -1284,8 +1386,8 @@ function vSettings(){
     <label class="small muted">Project Coordinator name<br><input class="in" value="${esc(S.config.coordinator.name)}" data-chg="coName" style="width:220px"></label>
     <label class="small muted">Project Coordinator password<br><input class="in" value="${esc(S.config.coordinator.password)}" data-chg="coPw" style="width:180px"></label></div>
     <p class="faint small" style="margin-top:8px">Project, cluster head and department passwords are on Projects & departments.</p></section>`;
-  h += `<section class="panel"><div class="panel-head"><h2>Try it with sample figures</h2></div><p class="muted small" style="max-width:680px">Loads made-up project figures from April to this month, department targets, meeting notes and a sample staff list, so you can see every page working. Remove it before real entries start.</p>
-    <div class="row" style="margin-top:12px"><button class="btn" data-act="demo">Load sample figures</button><button class="btn danger" data-act="wipe">Remove all figures, notes and staff</button></div>
+  h += `<section class="panel"><div class="panel-head"><h2>Try it with sample figures</h2></div><p class="muted small" style="max-width:680px">Loads made-up project figures from April to this month, department targets, meeting notes and a sample team members list, so you can see every page working. Remove it before real entries start.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" data-act="demo">Load sample figures</button><button class="btn danger" data-act="wipe">Remove all figures, notes and team members</button></div>
     <p class="faint small" style="margin-top:12px">Storage: ${Store.mode==='cloud'?'shared Claude artifact database':Store.mode==='api'?'shared database (Vercel / Supabase)':'this browser only'}.</p></section>`;
   return h;
 }
@@ -1346,7 +1448,7 @@ function notesSlide(type, period, key, empty, filter){
 /* ---------- guidelines: one page per role ---------- */
 function vGuide(){
   const T=thr(), U=S.config.settings.unit, role=S.user.role;
-  const cadence = `<h2>Weekly rhythm</h2><ol>
+  const cadenceOld = `<h2>Weekly rhythm</h2><ol>
     <li><b>Sunday:</b> the week closes. Figures are "as on Sunday".</li>
     <li><b>Monday 12 noon:</b> project logins or the Project Coordinator submit the week.</li>
     <li><b>Monday 6 pm:</b> cluster heads approve or return; cluster heads and HODs save their meeting notes.</li>
@@ -1354,6 +1456,16 @@ function vGuide(){
     <li><b>By the 3rd working day of a month:</b> last week of the previous month approved; HODs complete monthly figures. Monthly meeting follows.</li>
     <li><b>By the 7th:</b> CEO finalises incentive; it is paid with that month's salary.</li>
     <li><b>By the 10th after a quarter ends:</b> HODs complete quarterly figures and Operational Excellence notes. Quarterly meeting follows.</li></ol>`;
+  const rate = slabPct(T); const base = S.config.settings.base==='ctc'?'monthly CTC':'monthly gross salary';
+  const cadence = `<h2>Incentive guidelines</h2>
+    <div class="note"><b>The rule:</b> if a project achieves ${T}% or more of its month target, its dedicated team members receive ${rate}% of their ${base}. Below ${T}%, the project's team receives no incentive for that month.</div>
+    <ul><li><b>Dedicated team members</b> (100% on one project): ${rate}% of their ${base} when that project reaches ${T}%.</li>
+      <li><b>Shared resources</b> (QS, MEP, planning, safety and similar): their role is split across projects by weightage, for example Marvel 60% and Miraya 40%. They receive ${rate}% only on the weightage of the projects that reach ${T}%. With Marvel qualifying and Miraya not: ${base} × 60% × ${rate}% = ${Math.round(0.6*rate*10)/10}% of ${base}.</li>
+      <li><b>Heads of shared functions:</b> weightage across all projects in proportion to each project's month target.</li>
+      <li><b>Contribution %:</b> for someone who was not on the project for the whole month (joined, left, long leave), the amount is reduced in proportion to the days worked.</li>
+      <li><b>Only approved figures count.</b> The month is final when its last week is approved. Figures that are later found wrong are recovered from future incentive.</li>
+      <li><b>Safety and quality come first.</b> A serious site accident or major quality failure can reduce or cancel the project's incentive for the month.</li>
+      <li>Paid with the salary after the CEO finalises, usually by the 7th of the following month.</li></ul>`;
   const weeks = `<h2>How weeks work</h2><p>Weeks follow the calendar, Monday to Sunday, so a month has 4 or 5 weeks. A stub of one or two days at the start or end of a month joins the neighbouring week. Screens show only Week 1, Week 2 and so on.</p>`;
   const notes = `<h2>Meeting notes</h2><p>Tabs for Weekly, Monthly and Quarterly meetings. Each sheet has 10 rows.</p><ul>
     <li><b>Good news:</b> a person or team, with personal and/or professional news.</li><li><b>Appreciation:</b> a person or department team and what they did.</li>
@@ -1499,7 +1611,7 @@ function deptSlides(getter, periodText, cols){
 }
 function incentiveSlide(){ return {t:'Incentive', html:()=>{ const run=incentiveRun(S.month); const closed=monthClosed(S.month);
   const rows = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; return `<tr><td>${esc(c.p.name)}</td><td class="num">${pctChip(c.pct)}</td><td class="num">${run.pmap[c.pid].earnPct?'<span class="pct good">Past the line</span>':'<span class="pct risk">Below line</span>'}</td><td class="num">${c.need80>0?fmt(c.need80):'–'}</td><td class="num">${b.heads}</td><td class="num">${rs(b.earned)}</td><td class="num">${rs(b.potential)}</td></tr>`; }).join('');
-  return `<div class="hero-num"><span class="big">${rs(run.total)}</span><div><h2>incentive ${closed?'payable':'on figures so far'}</h2><p class="muted">${closed?'Month closed':'Final once the last week is approved'}${S.staff.length?' · '+rs(run.potential)+' if every project reaches '+thr()+'%':' · load the staff master to see amounts'}</p></div></div>
+  return `<div class="hero-num"><span class="big">${rs(run.total)}</span><div><h2>incentive ${closed?'payable':'on figures so far'}</h2><p class="muted">${closed?'Month closed':'Final once the last week is approved'}${S.staff.length?' · '+rs(run.potential)+' if every project reaches '+thr()+'%':' · load Team members to see amounts'}</p></div></div>
   <section class="panel" style="margin-top:22px"><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Achieved %</th><th class="num">Status</th><th class="num">Still needed for ${thr()}%</th><th class="num">People</th><th class="num">So far</th><th class="num">At ${thr()}%</th></tr></thead><tbody>${rows}</tbody></table></div></section>`; }}; }
 function portfolioSlide(pf, title){ return {t:title, html:()=>{ const pt=paceTone(pf.pct,pf.daysDone,pf.mi.dim);
   return `${scopeNote()?`<p class="muted small" style="margin-bottom:10px">${scopeNote()}</p>`:''}<div class="hero-num"><span class="big" style="color:var(--${pt==='none'?'ink':pt})">${pctS(pf.pct)}</span><div><h2>of ${pf.mi.name}'s target achieved</h2><p class="muted">${fmt(pf.mtd)} of ${fmt(pf.target)} ${esc(S.config.settings.unit)}${pf.lastIdx>=0?` · till Week ${pf.lastIdx+1} of ${pf.mi.N}`:''}${pf.expNow!=null&&pf.daysDone<pf.mi.dim?` · ${thr()}% pace by now: ${pctS(pf.expNow)}`:''}</p></div></div>
@@ -1580,27 +1692,30 @@ function exportIncentive(){
   const status = fin ? `Finalised ${new Date(fin.at).toLocaleDateString('en-IN')} by ${fin.by}` : monthClosed(S.month) ? 'Calculated, month closed, not finalised' : 'Draft: month not closed';
   const wb=XLSX.utils.book_new(); const add=(name,aoa,cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa); if(cols) ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws,name); };
   const sum=[[`Project incentive · ${mi.label}`],[status],[`Rule: ${ruleText()}`],[],['Project','Month target','Achieved','Achieved %','Qualifies','Rate %','Dedicated people','Shared FTE','Dedicated payout','Shared payout','Total payout']];
-  run.pf.list.forEach(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; sum.push([c.p.name,c.target,c.mtd,c.pct==null?'':+c.pct.toFixed(1),q.earnPct?'Yes':'No',q.earnPct,b.dedHeads,+b.shFte.toFixed(2),Math.round(b.ded),Math.round(b.sh),Math.round(b.earned)]); });
-  sum.push([],['Total','','','','','','','',Math.round(Object.values(run.byProject).reduce((s,b)=>s+b.ded,0)),Math.round(Object.values(run.byProject).reduce((s,b)=>s+b.sh,0)),Math.round(run.calcTotal)]);
-  if (fin) sum.push(['Adjustments after finalisation','','','','','','','','','',Math.round(run.total-fin.rows.reduce((s,x)=>s+num(x.calc),0))],['Final payable','','','','','','','','','',Math.round(run.total)]);
-  add('Summary', sum, [18,13,12,11,10,8,15,11,15,13,13]);
-  const head=['Name','Designation','Department','Location','Type','Allocation rule','Projects and shares','Monthly base','Calculated','Final payable','Adjustment','Reason'];
-  const line = r => { const f=fmap[r.id]; const calc=f?num(f.calc):Math.round(r.earned); const final=f?num(f.final):Math.round(r.earned); return [r.name,r.designation,r.department,r.location,r.type,r.rule,allocText(r),r.base,calc,final,final-calc,f?.reason||'']; };
-  const cols=[24,18,16,14,11,30,34,12,12,13,11,30];
-  add('All employees',[head,...run.rows.map(line)],cols);
+  sum[4].splice(5,0,'Safety & quality gate','Gate reason');
+  run.pf.list.forEach(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; sum.push([c.p.name,c.target,c.mtd,c.pct==null?'':+c.pct.toFixed(1),c.pct>=thr()?'Yes':'No',GATES[q.gate].l,q.gateReason,q.earnPct,b.dedHeads,+b.shFte.toFixed(2),Math.round(b.ded),Math.round(b.sh),Math.round(b.earned)]); });
+  const tp = (k)=>Math.round(Object.values(run.byProject).reduce((s,b)=>s+b[k],0));
+  sum.push([],['Total','','','','','','','','','',tp('ded'),tp('sh'),Math.round(run.calcTotal)]);
+  if (Math.round(run.total)!==Math.round(run.calcTotal)) sum.push(['Changes to calculated amounts','','','','','','','','','','','',Math.round(run.total-run.calcTotal)]);
+  sum.push(['Final payable','','','','','','','','','','','',Math.round(run.total)]);
+  add('Summary', sum, [18,13,12,11,10,16,24,8,15,11,15,13,13]);
+  const head=['Name','Designation','Department','Location','Type','Allocation rule','Projects and weightage','Monthly base','Contribution %','Calculated','% of base','How it is worked out','Final payable','Change','Reason'];
+  const line = r => { const calc=Math.round(r.earned); const final=Math.round(r.final); return [r.name,r.designation,r.department,r.location,r.type,r.rule,allocText(r),r.base,r.contrib,calc,+r.effPct.toFixed(2),r.working,final,final-calc,r.reason||'']; };
+  const cols=[24,18,16,14,11,30,34,12,13,12,10,60,13,10,30];
+  add('All team members',[head,...run.rows.map(line)],cols);
   add('Dedicated',[head,...run.rows.filter(r=>r.type==='Dedicated').map(line)],cols);
   add('Shared',[head,...run.rows.filter(r=>r.type!=='Dedicated').map(line)],cols);
-  const split=[['Project','Name','Designation','Type','Share %','Monthly base','Base on this project','Project achieved %','Rate %','Incentive']];
-  S.config.projects.forEach(p=>run.rows.forEach(r=>r.lines.filter(l=>l.pid===p.id).forEach(l=>split.push([p.name,r.name,r.designation,r.type,+l.share.toFixed(1),r.base,Math.round(r.base*l.share/100),l.pct==null?'':+l.pct.toFixed(1),l.rate,Math.round(l.e)]))));
-  add('Project-wise split',split,[16,24,18,11,9,12,16,15,8,11]);
-  add('Logic',[['How this workbook is calculated'],[],['1','A project qualifies when approved achievement for the month ÷ month target ≥ '+thr()+'%.'],['2','Rate: '+ruleText()+'. Below the first slab nothing is paid.'],['3','Incentive per person = Σ (monthly base × allocation share % × project rate %).'],['4','Dedicated: 100% share on one project.'],['5','Shared: listed projects, equal split unless shares are given (Marvel:60, Miraya:40).'],['6','All: every project weighted by its month target (heads of shared functions). All equal: equal split.'],['7','Final payable = calculated amount unless changed in Finalise & adjust; every change carries a reason.']],[4,110]);
+  const split=[['Project','Name','Designation','Type','Weightage %','Contribution %','Monthly base','Base on this project','Project achieved %','Rate %','Incentive']];
+  S.config.projects.forEach(p=>run.rows.forEach(r=>r.lines.filter(l=>l.pid===p.id).forEach(l=>split.push([p.name,r.name,r.designation,r.type,+l.share.toFixed(1),r.contrib,r.base,Math.round(r.base*r.contrib/100*l.share/100),l.pct==null?'':+l.pct.toFixed(1),l.rate,Math.round(l.e)]))));
+  add('Project-wise split',split,[16,24,18,11,12,13,12,18,16,8,11]);
+  add('Logic',[['How this workbook is calculated'],[],['1','A project qualifies when approved achievement for the month ÷ month target ≥ '+thr()+'%.'],['2','Rate: '+ruleText()+'. Below the first slab nothing is paid. A safety & quality gate can reduce the rate by 50% or forfeit it.'],['3','Incentive = Base × Contribution % × Σ (Weightage on each project × that project\'s rate).'],['4','Dedicated: 100% weightage on one project.'],['5','Shared: weightage as set (Marvel:60, Miraya:40); projects without numbers split equally.'],['6','All: every project weighted by its share of the month\'s total target (heads of shared functions). All equal: equal split.'],['7','Contribution %: share of the month actually worked on the project(s); 100 for a full month.'],['8','Final payable = calculated amount unless the CEO changed it; every change carries a reason.']],[4,120]);
   saveFile(`Project_Incentive_${MN[mi.m-1]}_${mi.y}${fin?'_Final':''}.xlsx`, wbBlob(wb));
 }
 
 /* ---------- sample data ---------- */
 function rng(seed){ let s=seed%2147483647; if(s<=0)s+=2147483646; return ()=> (s=s*16807%2147483647)/2147483647; }
 async function loadDemo(){
-  const ok = await ask('Load sample figures?','This writes made-up project figures from April to this month, department targets, meeting notes and a sample staff list. Real entries for those periods will be overwritten.','Load sample'); if(!ok) return;
+  const ok = await ask('Load sample figures?','This writes made-up project figures from April to this month, department targets, meeting notes and a sample team members list. Real entries for those periods will be overwritten.','Load sample'); if(!ok) return;
   const r = rng(20260925); const perf = {'marvel':.97,'miraya':.74,'midas-city':.86,'mithila-01':.55,'shyni-gold':.78,'niyoshi-park':.9};
   const cur=todayMonth(); const months = fyMonths(cur).filter(m=>m<=cur); const cw=todayWeek(cur); const now=new Date().toISOString();
   toast('Writing sample figures…');
@@ -1630,12 +1745,12 @@ async function loadDemo(){
     ['monthly',cur,hr,{good:[{name:'Accounts team',professional:'GST filing closed three days early'}],appr:[{name:'Store team',text:'Zero stock-outs at Marvel and Midas City'}],bott:[{area:'Purchase',issue:'Cement vendor rates up 6%',support:'CEO decision on second vendor',status:'Open'}]}]];
   for (const [type,per,u,body] of notes){ const id=noteId(type,per,u); const doc={type,period:per,author:u,updatedAt:now,...body}; S.meetings[id]=doc; await Store.set('meetings',id,doc); }
   const staff=[['Rahul Deshmukh','Project Manager','Projects','Marvel','','Marvel',145000],['Sneha Kulkarni','Site Engineer','Projects','Marvel','','Marvel',62000],['Amit Jadhav','Project Manager','Projects','Miraya','','Miraya',138000],['Pooja Shinde','Site Engineer','Projects','Miraya','','Miraya',58000],['Kiran Pawar','Project Manager','Projects','Midas City','','Midas City',150000],['Nilesh Gaikwad','Site Engineer','Projects','Midas City','','Midas City',60000],['Suresh More','Project In-charge','Projects','Mithila-01','','Mithila-01',98000],['Ganesh Bhosale','Project In-charge','Projects','Shyni Gold','','Shyni Gold',95000],['Vaishali Patil','Project Manager','Projects','Niyoshi Park','','Niyoshi Park',132000],['Prakash Thorat','QS Engineer','Contracts','','Marvel, Midas City, Mithila-01','Head Office',85000],['Meera Joshi','MEP Lead','MEP','','Marvel:40, Miraya:30, Niyoshi Park:30','Head Office',120000],['Sachin Wagh','Safety Officer','EHS','','All','Head Office',70000],['Rohit Chavan','Planning Engineer','Planning','','Miraya, Shyni Gold','Head Office',76000]]
-    .map((x,i)=>({id:'s'+(i+1)+'-'+slug(x[0]),name:x[0],designation:x[1],department:x[2],dedicated:x[3],shared:x[4],location:x[5],gross:x[6],ctcMonth:Math.round(x[6]*1.12),ctcYear:Math.round(x[6]*1.12*12)}));
+    .map((x,i)=>({id:'s'+(i+1)+'-'+slug(x[0]),name:x[0],designation:x[1],department:x[2],dedicated:x[3],shared:x[4],location:x[5],gross:x[6],ctcMonth:Math.round(x[6]*1.12),ctcYear:Math.round(x[6]*1.12*12),contribution:x[0]==='Nilesh Gaikwad'?60:100}));
   S.staff=staff; await Store.set('app','staff',{rows:staff, demo:true});
   toast('Sample figures loaded'); render();
 }
 async function wipeAll(){
-  const ok = await ask('Remove all figures, notes and staff?','Every weekly entry, approval, department figure, meeting note, incentive override and the staff list will be deleted. Projects, departments and logins stay.','Remove everything',true); if(!ok) return;
+  const ok = await ask('Remove all figures, notes and team members?','Every weekly entry, approval, department figure, meeting note, incentive change and the team members list will be deleted. Projects, departments and logins stay.','Remove everything',true); if(!ok) return;
   for (const [col,key] of [['entries','entries'],['incentives','inc'],['meetings','meetings'],['dept','dept']]) for (const id of Object.keys(S[key])) await Store.del(col,id);
   await Store.del('app','staff'); S.entries={}; S.inc={}; S.meetings={}; S.dept={}; S.staff=[]; toast('All figures removed'); render();
 }
@@ -1660,14 +1775,15 @@ document.addEventListener('click', async ev=>{
     case 'saveTargets': saveTargets(); break;
     case 'openProj': S.projectSel=b.dataset.p; S.view='project'; render(); window.scrollTo(0,0); break;
     case 'finalise': finaliseMonth(); break;
-    case 'unfinalise': if (await ask('Reopen the calculation?','The finalised snapshot and every change made to it will be discarded.','Reopen',true)){ const d={...(S.inc[S.month]||{})}; delete d.finalized; S.inc[S.month]=d; await Store.set('incentives',S.month,d); toast('Reopened'); render(); } break;
+    case 'editAlloc': editAllocation(b.dataset.id); break;
+    case 'unfinalise': if (await ask('Reopen the calculation?','The lock is removed and amounts return to live calculation. Changes made after finalising are discarded; changes made before finalising are kept.','Reopen',true)){ saveIncDoc(S.month, d=>{ delete d.finalized; }, 'Reopened'); } break;
     case 'delKpi': { const fy=S.deptPeriod==='quarterly'?qInfo(S.quarter).fy:fyStart(S.month); const doc=getDeptDoc(S.deptSel,fy); const k=(doc.kpis||[]).find(x=>x.id===b.dataset.k); if (k && await ask(`Delete "${k.name}"?`,'The KPI and its figures for this financial year are removed.','Delete',true)) saveDeptDoc(fy,S.deptSel,d=>{ d.kpis=d.kpis.filter(x=>x.id!==k.id); }); break; }
     case 'openDept': S.deptSel=b.dataset.d; S.view='targets'; render(); window.scrollTo(0,0); break;
     case 'exportSummary': exportSummary(); break;
     case 'exportIncentive': exportIncentive(); break;
     case 'template': downloadTemplate(); break;
     case 'delStaff': S.staff = S.staff.filter(r=>r.id!==b.dataset.id); await Store.set('app','staff',{rows:S.staff}); render(); break;
-    case 'clearStaff': if (await ask('Remove all staff?','The incentive register will be empty until you upload again.','Remove all',true)){ S.staff=[]; await Store.set('app','staff',{rows:[]}); render(); } break;
+    case 'clearStaff': if (await ask('Remove all team members?','The incentive register will be empty until you upload again.','Remove all',true)){ S.staff=[]; await Store.set('app','staff',{rows:[]}); render(); } break;
     case 'addProject': { const name=$('#npName').value.trim(); if(!name) return toast('Enter a project name'); if (c.projects.some(p=>slug(p.name)===slug(name))) return toast('A project with that name exists');
       let id=slug(name); while(c.projects.some(p=>p.id===id)) id+='-2';
       const bl = $('#npBld').value.split(',').map(s=>s.trim()).filter(Boolean).map(n=>B(id,n)); if ($('#npInfra').checked) bl.push(B(id,'Infra','Infra'));
@@ -1695,6 +1811,11 @@ document.addEventListener('change', async ev=>{
     case 'deptSel': if (!(await leaveOk())){ t.value=S.deptSel; break; } S.dirty=false; S.deptSel=v; render(); break;
     case 'upload': if (t.files[0]) uploadStaff(t.files[0]); t.value=''; break;
     case 'finAmt': updateFinal(t.dataset.id,'final',v); break;
+    case 'amt': setAmount(t.dataset.id,'amt',v); break;
+    case 'amtReason': setAmount(t.dataset.id,'reason',v); break;
+    case 'contrib': { const n=Math.max(0,Math.min(100,num(v))); saveIncDoc(S.month, d=>{ d.contrib ||= {}; d.contrib[t.dataset.id]=n; }, 'Contribution saved'); break; }
+    case 'gate': saveIncDoc(S.month, d=>{ d.gates ||= {}; d.gates[t.dataset.p] = {...(d.gates[t.dataset.p]||{}), mode:v}; if (v==='none') delete d.gates[t.dataset.p]; }, 'Gate updated'); break;
+    case 'gateReason': saveIncDoc(S.month, d=>{ d.gates ||= {}; d.gates[t.dataset.p] = {mode:'none', ...(d.gates[t.dataset.p]||{}), reason:v.trim()}; }, 'Reason saved'); break;
     case 'finReason': updateFinal(t.dataset.id,'reason',v); break;
     case 'pName': if(!v.trim()) return render(); P().name=v.trim(); await saveConfig('Renamed'); break;
     case 'pCl': P().clusterId=v; await saveConfig('Cluster head updated'); render(); break;
