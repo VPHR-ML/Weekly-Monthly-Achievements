@@ -192,6 +192,32 @@ dialog::backdrop{background:rgba(20,24,28,.45)}
 .meet .dots i.on{background:var(--brand)}
 .meet h1{font-size:40px}
 .meet .kpi .v{font-size:30px}
+/* executive summary & project cards */
+.exec{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:var(--r-lg);padding:18px 22px;margin-bottom:18px}
+.exec p.lead{font-size:18px;line-height:1.5;font-weight:400}
+.exec .facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.exec .facts span{font-size:13px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:20px;padding:3px 11px;color:var(--ink-2)}
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.pcard{border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;background:var(--surface);display:flex;flex-direction:column;gap:8px;border-top:3px solid var(--line)}
+.pcard.good{border-top-color:var(--good)} .pcard.watch{border-top-color:#C08A1E} .pcard.risk{border-top-color:var(--risk)}
+.pcard .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pcard .top h3{font-size:16px}
+.pcard .pc{font-size:34px;font-weight:300;letter-spacing:-.02em;line-height:1.1}
+.pcard .mini{position:relative;height:6px;background:var(--surface-2);border-radius:3px}
+.pcard .mini i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--steel)}
+.pcard.good .mini i{background:var(--good)} .pcard.watch .mini i{background:#C08A1E} .pcard.risk .mini i{background:var(--risk)}
+.pcard .mini b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--brand)}
+.pcard .ln{font-size:13.5px;color:var(--ink-2)} .pcard .ln b{font-weight:500;color:var(--ink)}
+.badge-st{font-size:12px;padding:3px 10px;border-radius:20px;white-space:nowrap;font-weight:500}
+.badge-st.good{background:var(--good-bg);color:var(--good)} .badge-st.watch{background:var(--watch-bg);color:var(--watch)} .badge-st.risk{background:var(--risk-bg);color:var(--risk)} .badge-st.none{background:var(--surface-2);color:var(--ink-3)}
+details.more{margin-top:18px} details.more > summary{cursor:pointer;list-style:none;padding:14px 22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);font-weight:500}
+details.more[open] > summary{border-radius:var(--r-lg) var(--r-lg) 0 0}
+details.more > summary::after{content:"Show";float:right;color:var(--ink-3);font-weight:400;font-size:13px} details.more[open] > summary::after{content:"Hide"}
+details.more > .inner{border:1px solid var(--line);border-top:0;border-radius:0 0 var(--r-lg) var(--r-lg);padding:18px 22px;background:var(--surface)}
+details.more > .inner > .panel{border:0;padding:0}
+.guide h2{margin:22px 0 8px} .guide h3{margin:16px 0 6px} .guide p,.guide li{color:var(--ink-2);font-size:14.5px;line-height:1.65} .guide ul,.guide ol{padding-left:20px;margin:6px 0}
+.guide .formula{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;padding:12px 14px;font-size:13.5px;color:var(--ink);margin:8px 0;white-space:pre-wrap}
+.guide .note{border-left:3px solid var(--steel);padding:6px 12px;background:var(--info-bg);border-radius:0 6px 6px 0;margin:10px 0}
 /* notes sheets */
 .sheet td{padding:4px 6px}
 .sheet td.idx{width:34px;color:var(--ink-3);text-align:center;font-size:12.5px}
@@ -315,7 +341,7 @@ function normConfig(c){
 const S = {
   config:null, entries:{}, staff:[], inc:{}, meetings:{}, dept:{},
   user:null, view:null, month:null, week:1, approvedOnly:true, projectSel:null, deptSel:null, dirty:false, meet:null,
-  dashTab:'month', notesType:'weekly', quarter:null, deptTab:'month'
+  dashTab:'month', notesType:'weekly', quarter:null, deptTab:'month', deptPeriod:'monthly'
 };
 async function loadAll(){
   let cfg = await Store.get('app','config');
@@ -396,12 +422,12 @@ function viewMode(){ if (!S.user) return 'approved'; if (S.user.role==='project'
 /* ---------- core calculation: cumulative achievement at each weekend ---------- */
 function calcProject(pid, month, mode){
   const p = proj(pid); const mi = monthInfo(month); const e = getEntry(month,pid);
-  const blds = p.buildings.map(b=>({id:b.id,name:b.name,kind:b.kind,target:num(e.targets?.[b.id]),weeks:[],mtd:0,raw:0}));
+  const blds = p.buildings.map(b=>({id:b.id,name:b.name,kind:b.kind,target:num(e.targets?.[b.id]),weeks:[],mtd:0,raw:0,remark:'',remarkWeek:null}));
   const weeks = mi.weeks.map(w=>{
     const W = wk(e,w.n); const hasData = Object.keys(W.vals||{}).length>0; const inc = hasData && includeStatus(W.status||'draft', mode);
     let cum=0;
     blds.forEach(b=>{ const v = W.vals?.[b.id];
-      if (v){ b.raw = has(v.cum) ? num(v.cum) : b.raw + num(v.a); }   // older entries stored weekly figures
+      if (v){ b.raw = has(v.cum) ? num(v.cum) : b.raw + num(v.a); if (v.r){ b.remark=v.r; b.remarkWeek=w.n; } }   // older entries stored weekly figures
       b.weeks.push({cum: inc ? b.raw : null}); if (inc){ b.mtd = b.raw; cum += b.raw; } });
     return {...w, status:W.status||'draft', hasData, included:inc, cum: inc?cum:null, by:W.submittedBy||'', note:W.note||''};
   });
@@ -454,32 +480,46 @@ function pendingFor(user){
   return out.sort((a,b)=>(a.month+String(a.n).padStart(2,'0')).localeCompare(b.month+String(b.n).padStart(2,'0')));
 }
 
-/* ---------- departments: monthly target vs achieved, cumulative into quarters ---------- */
+/* ---------- departments: weekly -> monthly -> quarterly ----------
+   Each level adds up from the level below (Sum or Average per KPI). A figure typed at a level replaces the added-up figure. */
 const deptDocId = (fy,did) => fy+'_'+did;
 function getDeptDoc(did, fy){
   const d = S.dept[deptDocId(fy,did)]; if (d) return d;
   const prev = S.dept[deptDocId(fy-1,did)];
-  return {deptId:did, fy, kpis: prev ? JSON.parse(JSON.stringify(prev.kpis||[])) : [], months:{}, quarters:{}};
+  return {deptId:did, fy, kpis: prev ? JSON.parse(JSON.stringify(prev.kpis||[])) : [], weeks:{}, months:{}, quarters:{}};
+}
+const aggV = (arr, agg) => { const v=arr.filter(x=>x!=null); if(!v.length) return null; const s=v.reduce((a,b)=>a+b,0); return agg==='avg' ? s/v.length : s; };
+function kpiEff(direct, from){
+  direct = direct || {}; const t = has(direct.t)?num(direct.t):from.t, a = has(direct.a)?num(direct.a):from.a;
+  return {t, a, pct: t>0 && a!=null ? a/t*100 : null, r: direct.r||'', direct: has(direct.t)||has(direct.a), fromT:from.t, fromA:from.a, rawT:direct.t??'', rawA:direct.a??'', rawR:direct.r||''};
+}
+function deptSummary(d, kpis){ const ps=kpis.map(k=>k.pct).filter(v=>v!=null);
+  return {d, kpis, pct: ps.length ? ps.reduce((s,x)=>s+x,0)/ps.length : null, filled: kpis.some(k=>k.t!=null||k.a!=null), behind: kpis.filter(k=>k.pct!=null && k.pct<thr())}; }
+function deptWeek(did, month, n){
+  const d = getDeptDoc(did, fyStart(month)); const wv = (d.weeks||{})[`${month}-W${n}`]||{};
+  return deptSummary(d, (d.kpis||[]).map(k=>({...k, ...kpiEff(wv[k.id], {t:null,a:null})})));
+}
+function deptMonth(did, month){
+  const d = getDeptDoc(did, fyStart(month)); const mi=monthInfo(month); const mv=(d.months||{})[month]||{};
+  return deptSummary(d, (d.kpis||[]).map(k=>{
+    const ws = mi.weeks.map(w=>{ const v=(d.weeks||{})[`${month}-W${w.n}`]?.[k.id]||{}; return {n:w.n, t:has(v.t)?num(v.t):null, a:has(v.a)?num(v.a):null, r:v.r||''}; });
+    const wr = ws.filter(x=>x.r).map(x=>x.r).pop()||'';
+    const eff = kpiEff(mv[k.id], {t:aggV(ws.map(x=>x.t),k.agg), a:aggV(ws.map(x=>x.a),k.agg)});
+    return {...k, ws, ...eff, r: eff.r || wr};
+  }));
 }
 function deptQuarter(did, qid){
   const Q = qInfo(qid); const d = getDeptDoc(did, Q.fy); const qv = (d.quarters||{})[qid]||{};
-  const kpis = (d.kpis||[]).map(k=>{
-    const ms = Q.months.map(m=>{ const v=(d.months||{})[m]?.[k.id]||{}; return {m, t:has(v.t)?num(v.t):null, a:has(v.a)?num(v.a):null}; });
-    const tt = ms.filter(x=>x.t!=null).map(x=>x.t), aa = ms.filter(x=>x.a!=null).map(x=>x.a);
-    const agg = arr => !arr.length ? null : k.agg==='avg' ? arr.reduce((s,x)=>s+x,0)/arr.length : arr.reduce((s,x)=>s+x,0);
-    const fromT = agg(tt), fromA = agg(aa); const o = qv[k.id]||{};
-    const t = has(o.t) ? num(o.t) : fromT, a = has(o.a) ? num(o.a) : fromA;
-    return {...k, ms, fromT, fromA, qT:o.t??'', qA:o.a??'', t, a, pct: t>0 && a!=null ? a/t*100 : null, direct: has(o.t)||has(o.a)};
-  });
-  const ps = kpis.map(k=>k.pct).filter(v=>v!=null);
-  return {Q, d, kpis, pct: ps.length ? ps.reduce((s,x)=>s+x,0)/ps.length : null};
+  const months = Q.months.map(m=>deptMonth(did,m));
+  const r = deptSummary(d, (d.kpis||[]).map(k=>{
+    const ms = months.map((mm,i)=>{ const x=mm.kpis.find(z=>z.id===k.id)||{}; return {m:Q.months[i], t:x.t??null, a:x.a??null, r:x.r||''}; });
+    const mr = ms.filter(x=>x.r).map(x=>x.r).pop()||'';
+    const eff = kpiEff(qv[k.id], {t:aggV(ms.map(x=>x.t),k.agg), a:aggV(ms.map(x=>x.a),k.agg)});
+    return {...k, ms, ...eff, r: eff.r || mr};
+  }));
+  return {Q, ...r};
 }
-function deptMonth(did, month){
-  const d = getDeptDoc(did, fyStart(month)); const mv = (d.months||{})[month]||{};
-  const kpis = (d.kpis||[]).map(k=>{ const v=mv[k.id]||{}; const t=has(v.t)?num(v.t):null, a=has(v.a)?num(v.a):null; return {...k, t, a, pct: t>0 && a!=null ? a/t*100 : null}; });
-  const ps = kpis.map(k=>k.pct).filter(v=>v!=null);
-  return {d, kpis, pct: ps.length ? ps.reduce((s,x)=>s+x,0)/ps.length : null, filled: kpis.some(k=>k.t!=null||k.a!=null)};
-}
+function deptPeriod(did, per){ return per==='weekly' ? deptWeek(did,S.month,S.week) : per==='monthly' ? deptMonth(did,S.month) : deptQuarter(did,S.quarter); }
 
 /* ---------- meeting notes (good news, appreciation, bottlenecks, operational excellence) ---------- */
 const authorKey = u => u.role+'-'+u.id;
@@ -557,7 +597,7 @@ function board(pf){
     const fill = c.pct!=null ? `<div class="fill ${pt}" style="width:${pos(c.pct)}%"></div>` : '';
     const exp = c.expNow!=null && !c.closed ? `<div class="exp" style="left:${pos(c.expNow)}%" title="80% pace by day ${c.daysDone}: ${pctS(c.expNow)}"></div>` : '';
     const cl = cluster(c.p.clusterId);
-    const sub = !c.last ? 'no figures yet' : c.need80<=0 ? 'past the line' : c.closed ? `short by ${fmt(c.need80)}` : `needs ${fmt(c.perWeek80)} per 7-day week`;
+    const sub = !c.last ? 'no figures yet' : c.need80<=0 ? 'past the line' : c.closed ? `closed ${fmt(c.need80)} short` : `needs ${fmt(c.need80)} more`;
     return `<div class="lane"><div class="name">${esc(c.p.name)}<small>${c.last?('Till Week '+c.last.n+' · '):''}${esc(cl?cl.name.split(' ')[0]:'CEO approves')}</small></div>
       <div class="track">${fill}${exp}<div class="line" style="left:${pos(thr())}%"></div></div>
       <div class="fig"><b style="color:var(--${pt==='none'?'ink-3':pt})">${pctS(c.pct)}</b><span>${sub}</span></div></div>`;
@@ -567,28 +607,36 @@ function board(pf){
   <p class="faint small" style="margin-top:6px">Bar colour compares each project with its pace mark: green on or ahead of pace, amber slightly behind, red well behind.</p>`;
 }
 
-/* ---------- what is needed to close the month at the incentive line ---------- */
-function requiredTable(pf){
-  const mi = pf.mi; const U=S.config.settings.unit;
-  const head = mi.weeks.map(w=>`<th class="num">Week ${w.n}</th>`).join('');
-  const rows = pf.list.map(c=>{
-    const cells = c.weeks.map((w,i)=>{
-      if (i<=c.lastIdx) return `<td class="num">${paceChip(w.cumPct, w.end, c.mi.dim)}</td>`;
-      if (c.target<=0) return `<td class="num faint">–</td>`;
-      if (c.need80<=0) return `<td class="num"><span class="faint">done</span></td>`;
-      const pend = w.hasData && !w.included ? `<div class="small" style="color:var(--steel)">${statusLabel(w.status).toLowerCase()}</div>` : '';
-      return `<td class="num"><span class="pct req">${pctS(c.reqPct[i])}</span><div class="faint small">+${fmt(c.add[i])}</div>${pend}</td>`;
-    }).join('');
-    const last = c.target<=0 ? '<td class="num">–</td><td class="num">–</td>' : c.need80<=0 ? `<td class="num"><span class="pct good">Achieved</span></td><td class="num">${fmt(c.need100)}</td>`
-      : `<td class="num"><b style="font-weight:500">${fmt(c.need80)}</b>${c.closed?'<div class="small" style="color:var(--risk)">month closed</div>':`<div class="faint small">${fmt(c.perWeek80)} per 7-day week</div>`}</td><td class="num">${fmt(c.need100)}</td>`;
-    return `<tr><td><b style="font-weight:500">${esc(c.p.name)}</b></td><td class="num">${fmt(c.target)}</td>${cells}${last}</tr>`;
-  }).join('');
-  const days = mi.weeks.map(w=>`<th class="num faint small" style="font-weight:400">${w.days} days</th>`).join('');
-  return `<div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Month target</th>${head}<th class="num">Still needed for ${thr()}%</th><th class="num">Balance to 100%</th></tr>
-  <tr><th></th><th></th>${days}<th></th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-  <p class="faint small" style="margin-top:8px">Filled cells are approved achievement to date. Dashed cells are the cumulative % to reach by that weekend to close at ${thr()}%; the figure below is what to add that week in ${esc(U)}, in proportion to the days in the week.</p>`;
+/* ---------- what is needed to reach the incentive line: plain language ---------- */
+function projStatus(c){
+  if (!c.last || c.target<=0) return {k:'none', l:'No figures'};
+  if (c.pct>=thr()) return {k:'good', l:'Achieved'};
+  if (c.closed) return {k:'risk', l:'Missed'};
+  if (c.pct>=paceExp(c.daysDone,c.mi.dim)) return {k:'good', l:'On track'};
+  if (c.avgWeekA>0 && c.perWeek80<=c.avgWeekA*1.5) return {k:'watch', l:'Needs push'};
+  return {k:'risk', l:'At risk'};
 }
-
+const stBadge = st => `<span class="badge-st ${st.k}">${st.l}</span>`;
+function remainingWeeks(c){ return c.weeks.map((w,i)=>({w, add:c.add[i]})).filter((x,i)=>i>c.lastIdx); }
+function needText(c, short=false){
+  const U=S.config.settings.unit;
+  if (!c.last) return c.target>0 ? 'No approved figures yet.' : 'No target set.';
+  if (c.need80<=0) return `Past the ${thr()}% line. ${fmt(c.need100)} more reaches 100%.`;
+  if (c.closed) return `Month closed ${fmt(c.need80)} short of ${thr()}%.`;
+  const rw = remainingWeeks(c);
+  if (rw.length===1) return `${fmt(c.need80)} more in Week ${rw[0].w.n}${rw[0].w.days<7?` (${rw[0].w.days} days)`:''}.`;
+  return `${fmt(c.need80)} more by month end` + (short ? '.' : ` (${rw.map(x=>`Week ${x.w.n}: ${fmt(x.add)}`).join(', ')}).`);
+}
+function requiredTable(pf){
+  const U=S.config.settings.unit;
+  const rows = pf.list.map(c=>{ const st=projStatus(c); const rw=remainingWeeks(c);
+    const plan = !c.last || c.need80<=0 || c.closed ? '<span class="faint">–</span>' : rw.map(x=>`<div>Week ${x.w.n}${x.w.days<7?` <span class="faint">(${x.w.days} days)</span>`:''}: <b style="font-weight:500">${fmt(x.add)}</b></div>`).join('');
+    return `<tr><td><b style="font-weight:500">${esc(c.p.name)}</b></td><td class="num">${fmt(c.target)}</td><td class="num">${c.last?fmt(c.mtd):'–'}<div class="faint small">${c.last?'till Week '+c.last.n:''}</div></td><td class="num">${c.last?pctS(c.pct):'–'}</td>
+      <td class="num">${!c.last?'–':c.need80<=0?'<span style="color:var(--good)">Done</span>':`<b style="font-weight:500">${fmt(c.need80)}</b>`}</td><td class="small">${plan}</td><td>${stBadge(st)}</td></tr>`;
+  }).join('');
+  return `<div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Month target</th><th class="num">Achieved so far</th><th class="num">Achieved %</th><th class="num">More needed for ${thr()}%</th><th>To add in each remaining week</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="faint small" style="margin-top:8px">Figures in ${esc(U)}. The amount still needed is split across the remaining weeks by the number of days in each week, so a short 3-day week carries less. On track: at or ahead of the ${thr()}% pace for the days passed. Needs push: behind, but reachable at up to 1.5 times its pace so far. At risk: needs more than that.</p>`;
+}
 /* ---------- incentive engine ---------- */
 function findProject(name){
   const k = slug(name).replace(/-/g,''); if(!k) return null;
@@ -596,44 +644,55 @@ function findProject(name){
 }
 const isYes = v => /^(y|yes|true|1|✓)$/i.test(String(v??'').trim());
 const isNo = v => /^(n|no|false|0|-|na|n\/a)?$/i.test(String(v??'').trim());
-function allocation(r){
+/* Allocation rules
+   Dedicated  : 100% to one project.
+   Shared     : listed projects; equal split unless shares are given (Marvel:60, Miraya:40).
+   All        : every project, weighted by each project's month target (heads of shared functions).
+   All equal  : every project, equal split. */
+function allocation(r, month){
   if (!isNo(r.dedicated)){
     const name = isYes(r.dedicated) ? r.location : r.dedicated; const p = findProject(name);
-    return {type:'Dedicated', alloc: p?[{pid:p.id,share:100}]:[], issue: p?'':`Project "${name}" not found`};
+    return {type:'Dedicated', rule:'100% to one project', alloc: p?[{pid:p.id,share:100}]:[], issue: p?'':`Project "${name}" not found`};
   }
   if (!isNo(r.shared)){
-    let parts;
-    if (isYes(r.shared) || /^all$/i.test(String(r.shared).trim())) parts = S.config.projects.map(p=>({pid:p.id,share:null}));
-    else parts = String(r.shared).split(/[,;|]+/).map(x=>x.trim()).filter(Boolean).map(x=>{
+    const raw = String(r.shared).trim();
+    if (/^all\s*equal$/i.test(raw)) return {type:'Shared', rule:'All projects, equal split', alloc:S.config.projects.map(p=>({pid:p.id,share:100/S.config.projects.length})), issue:''};
+    if (isYes(raw) || /^all$/i.test(raw)){
+      const t = S.config.projects.map(p=>({pid:p.id, t: month ? calcProject(p.id,month,'approved').target : 0})); const tot=t.reduce((s,x)=>s+x.t,0);
+      return {type:'Shared', rule: tot>0?'All projects, weighted by month target':'All projects, equal split (no targets yet)', alloc:t.map(x=>({pid:x.pid, share: tot>0 ? x.t/tot*100 : 100/t.length})).filter(x=>x.share>0), issue:''};
+    }
+    let parts = raw.split(/[,;|]+/).map(x=>x.trim()).filter(Boolean).map(x=>{
       let p = findProject(x); if (p) return {pid:p.id, share:null};
       const m = x.match(/^(.*?)\s*[:=(]\s*(\d+(?:\.\d+)?)\s*%?\s*\)?$/) || x.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*%$/);
       if (m){ p = findProject(m[1]); return {pid:p?.id, share:+m[2], raw:m[1]}; }
       return {pid:null, raw:x};
     });
     const bad = parts.filter(x=>!x.pid).map(x=>x.raw); parts = parts.filter(x=>x.pid);
+    const given = parts.some(x=>x.share!=null);
     const fixed = parts.filter(x=>x.share!=null).reduce((s,x)=>s+x.share,0); const open = parts.filter(x=>x.share==null);
     const rest = Math.max(0,100-fixed); open.forEach(x=>x.share = rest/open.length);
-    const tot = parts.reduce((s,x)=>s+x.share,0); if (tot>100.01) parts.forEach(x=>x.share = x.share*100/tot);
-    return {type:'Shared', alloc:parts, issue: bad.length?('Not found: '+bad.join(', ')):''};
+    const tot = parts.reduce((s,x)=>s+x.share,0); if (tot>0 && Math.abs(tot-100)>0.01) parts.forEach(x=>x.share = x.share*100/tot);
+    return {type:'Shared', rule: given?'Listed projects, shares as given':'Listed projects, equal split', alloc:parts, issue: bad.length?('Not found: '+bad.join(', ')):''};
   }
-  return {type:'Not tagged', alloc:[], issue:'Mark Dedicated or Shared'};
+  return {type:'Not tagged', rule:'', alloc:[], issue:'Mark Dedicated or Shared'};
 }
 function baseOf(r){ return S.config.settings.base==='ctc' ? num(r.ctcMonth) : num(r.gross); }
+const allocText = (r) => r.alloc.map(l=>`${proj(l.pid)?.name||l.pid}${r.type==='Shared'?' '+Math.round(l.share)+'%':''}`).join(', ');
 function incentiveRun(month){
   const pf = calcPortfolio(S.config.projects.map(p=>p.id), month, 'approved');
   const pmap = {}; pf.list.forEach(c=>pmap[c.pid]={c, earnPct:slabPct(c.pct)});
-  const atLine = slabPct(thr()); const ov = (S.inc[month]||{}).overrides||{};
+  const atLine = slabPct(thr()); const fin = (S.inc[month]||{}).finalized; const fmap = {}; (fin?.rows||[]).forEach(x=>fmap[x.id]=x);
   const rows = S.staff.map(r=>{
-    const a = allocation(r); const base = baseOf(r);
-    let earned=0, potential=0; const lines = a.alloc.map(x=>{ const q=pmap[x.pid]; const e = base*x.share/100*(q?q.earnPct:0)/100; const pt = base*x.share/100*atLine/100; earned+=e; potential+=pt; return {...x, e, pt}; });
-    const o = ov[r.id]; const final = (o && o.amt!=null && o.amt!=='') ? num(o.amt) : earned;
-    return {...r, ...a, base, lines, earned, potential, override:o, final};
+    const a = allocation(r, month); const base = baseOf(r);
+    let earned=0, potential=0; const lines = a.alloc.map(x=>{ const q=pmap[x.pid]; const rate=q?q.earnPct:0; const e = base*x.share/100*rate/100; const pt = base*x.share/100*atLine/100; earned+=e; potential+=pt; return {...x, pct:q?.c.pct??null, rate, e, pt}; });
+    const f = fmap[r.id]; const final = f ? num(f.final) : earned;
+    return {...r, ...a, base, lines, earned, potential, final, reason: f?.reason||'', calcAtFinal: f?num(f.calc):null};
   });
-  const byProject = {}; S.config.projects.forEach(p=>byProject[p.id]={earned:0,potential:0,heads:0,fte:0});
-  rows.forEach(r=>r.lines.forEach(l=>{ const b=byProject[l.pid]; if(!b) return; b.earned+=l.e; b.potential+=l.pt; b.heads++; b.fte+=l.share/100; }));
-  return {pf, pmap, rows, byProject, total: rows.reduce((s,r)=>s+r.final,0), potential: rows.reduce((s,r)=>s+r.potential,0)};
+  const byProject = {}; S.config.projects.forEach(p=>byProject[p.id]={earned:0,potential:0,heads:0,fte:0,ded:0,sh:0,dedHeads:0,shFte:0});
+  rows.forEach(r=>r.lines.forEach(l=>{ const b=byProject[l.pid]; if(!b) return; b.earned+=l.e; b.potential+=l.pt; b.heads++; b.fte+=l.share/100;
+    if (r.type==='Dedicated'){ b.ded+=l.e; b.dedHeads++; } else { b.sh+=l.e; b.shFte+=l.share/100; } }));
+  return {pf, pmap, rows, byProject, fin, total: rows.reduce((s,r)=>s+r.final,0), calcTotal: rows.reduce((s,r)=>s+r.earned,0), potential: rows.reduce((s,r)=>s+r.potential,0)};
 }
-
 /* ---------- CHRO / variable-pay interpretation ---------- */
 function insightsFor(pf, opts={}){
   const out=[]; const T=thr(); const U=S.config.settings.unit; const L=pf.list;
@@ -681,6 +740,81 @@ function insightsFor(pf, opts={}){
   return out;
 }
 function insightsHTML(list){ return list.map(i=>`<div class="ins ${i.tone}"><div class="bar"></div><div><h3>${esc(i.h)}</h3><p>${esc(i.p)}</p>${i.a?`<div class="act"><b>Action:</b> ${esc(i.a)}</div>`:''}</div></div>`).join(''); }
+/* ---------- project briefing: one card per project, readable in ten seconds ---------- */
+function issueText(c){
+  if (!c.last) return '';
+  const real = c.blds.filter(b=>b.target>0);
+  const stalled = real.filter(b=>b.mtd===0 && c.lastIdx>=1);
+  if (stalled.length) return `${stalled.map(b=>b.name).join(', ')} at zero${stalled[0].remark?`: "${stalled[0].remark}"`:''}.`;
+  const exp = paceExp(c.daysDone, c.mi.dim);
+  const lag = real.filter(b=>b.pct!=null && b.pct<exp*0.85).sort((a,b)=>a.pct-b.pct);
+  if (lag.length) return `${lag.slice(0,2).map(b=>`${b.name} ${Math.round(b.pct)}%`).join(', ')} behind pace${lag[0].remark?`: "${lag[0].remark}"`:''}.`;
+  if (c.prevGain!=null && c.lastGain!=null && c.prevGain>0 && (c.lastGain/c.lastDays) < (c.prevGain/c.prevDays)*0.7) return `Pace dropped in Week ${c.last.n}.`;
+  return '';
+}
+function actionText(c, st){
+  const ch = cluster(c.p.clusterId)?.name || 'the project head';
+  return {good: c.pct>=thr() ? 'Recognise the team; push towards 100%.' : 'Hold the pace.', watch:`Ask ${ch} for a building-wise plan to add ${fmt(c.need80)}.`,
+    risk: st.l==='Missed' ? 'Review root cause; do not re-cut the target.' : 'Escalate this week: remove the constraint or accept the miss and protect next month.', none:'Get the week submitted and approved.'}[st.k];
+}
+function projectCard(c){
+  const st = projStatus(c); const pos=v=>Math.max(0,Math.min(v,120))/120*100; const issue = issueText(c);
+  return `<article class="pcard ${st.k}"><div class="top"><h3>${esc(c.p.name)}</h3>${stBadge(st)}</div>
+    <div class="pc">${c.last?pctS(c.pct):'–'}</div>
+    <div class="mini"><i style="width:${pos(c.pct||0)}%"></i><b style="left:${pos(thr())}%"></b></div>
+    <div class="ln">${c.last?`${fmt(c.mtd)} of ${fmt(c.target)} · till Week ${c.last.n} of ${c.mi.N}`:esc(cluster(c.p.clusterId)?.name||'CEO approves')}</div>
+    <div class="ln"><b>Needs:</b> ${needText(c)}</div>
+    ${issue?`<div class="ln"><b>Issue:</b> ${esc(issue)}</div>`:''}
+    <div class="ln"><b>Action:</b> ${esc(actionText(c,st))}</div>
+    <div><button class="btn ghost sm" style="padding-left:0" data-act="openProj" data-p="${c.pid}">Open project →</button></div></article>`;
+}
+function execSummary(pf, ceo){
+  const act = pf.list.filter(c=>c.last); const sts = pf.list.map(c=>({c, st:projStatus(c)}));
+  const good = sts.filter(x=>x.st.k==='good'), risk = sts.filter(x=>x.st.k==='risk'), push = sts.filter(x=>x.st.k==='watch');
+  let lead;
+  if (!act.length) lead = `No approved figures for ${pf.mi.label} yet.`;
+  else {
+    lead = `${good.length} of ${pf.list.length} projects ${good.length===1?'is':'are'} on course for the ${thr()}% line after Week ${pf.lastIdx+1} of ${pf.mi.N}.`;
+    if (risk.length) lead += ` ${risk.map(x=>x.c.p.name).join(', ')} ${risk.length>1?'are':'is'} at risk and need${risk.length>1?'':'s'} ${risk.map(x=>fmt(x.c.need80)).join(' and ')} more.`;
+    if (push.length) lead += ` ${push.map(x=>x.c.p.name).join(', ')} need${push.length>1?'':'s'} a push.`;
+  }
+  const facts = [`Portfolio ${pctS(pf.pct)} of ${fmt(pf.target)} ${esc(S.config.settings.unit)}`];
+  const pend = pendingFor(S.user).length; if (pend) facts.push(`${pend} approval${pend>1?'s':''} waiting`);
+  if (ceo){ const ob = openBottlenecks(); if (ob.length) facts.push(`${ob.length} open bottleneck${ob.length>1?'s':''}`);
+    const behind = S.config.departments.filter(d=>{ const r=deptMonth(d.id,S.month); return r.pct!=null && r.pct<thr(); }).length; if (behind) facts.push(`${behind} department${behind>1?'s':''} below ${thr()}% this month`); }
+  return `<div class="exec"><p class="lead">${esc(lead)}</p><div class="facts">${facts.map(f=>`<span>${f}</span>`).join('')}</div></div>`;
+}
+/* ---------- CEO extras: departments snapshot, bottleneck register, people highlights ---------- */
+function openBottlenecks(){
+  const latest = {}; Object.values(S.meetings).forEach(d=>{ if(!d.author) return; const k=d.type+'|'+authorKey(d.author); if (!latest[k] || latest[k].period<d.period) latest[k]=d; });
+  const out=[]; const seen=new Set();
+  Object.values(latest).forEach(d=>(d.bott||[]).forEach(r=>{ if (r.status==='Resolved') return; const key=slug(r.area+'|'+r.issue); if (seen.has(key)) return; seen.add(key); out.push({...r, by:d.author.name, period:periodLabel(d.type,d.period)}); }));
+  return out.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
+}
+function bottleneckPanel(){
+  const ob = openBottlenecks();
+  const rows = ob.map(r=>{ const late = r.due && r.due < new Date().toISOString().slice(0,10); return `<tr><td>${esc(r.area)}${r.from?`<div class="faint small">since ${esc(r.from)}</div>`:''}</td><td>${esc(r.issue)}</td><td>${esc(r.support||'')}</td><td>${r.due?`<span style="color:var(--${late?'risk':'ink'})">${new Date(r.due).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}${late?' · overdue':''}</span>`:'<span class="faint">–</span>'}</td><td>${stChip(r.status)}</td><td class="muted small">${esc(r.by)}</td></tr>`; }).join('');
+  return `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Open bottlenecks</h2><span class="muted small">Everything not yet marked Resolved, from the latest notes of each cluster head and HOD</span></div>
+    ${ob.length?`<div class="tbl-wrap"><table><thead><tr><th>Project / area</th><th>Bottleneck</th><th>Support needed from</th><th>Needed by</th><th>Status</th><th>Raised by</th></tr></thead><tbody>${rows}</tbody></table></div>`:emptyHTML('No open bottlenecks','Bottlenecks raised in meeting notes appear here until marked Resolved.')}</section>`;
+}
+function deptSnapshot(){
+  const data = S.config.departments.map(d=>({d, r:deptMonth(d.id,S.month)}));
+  const rep = data.filter(x=>x.r.pct!=null).sort((a,b)=>a.r.pct-b.r.pct); const miss = data.filter(x=>x.r.pct==null);
+  const rows = rep.map(x=>`<tr><td>${esc(x.d.name)}</td><td class="num">${pctChip(x.r.pct)}</td><td class="small">${x.r.behind.length?x.r.behind.map(k=>`${esc(k.name)} ${Math.round(k.pct)}%${k.r?` <span class="faint">— ${esc(k.r)}</span>`:' <span style="color:var(--risk)">— no reason given</span>'}`).join('<br>'):'<span class="faint">All KPIs at or above '+thr()+'%</span>'}</td><td><button class="btn ghost sm" data-act="openDept" data-d="${x.d.id}">Open</button></td></tr>`).join('');
+  return `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Departments · ${monthInfo(S.month).label}</h2><span class="muted small">Lowest first, with the reason for delay given by the HOD</span></div>
+    ${rep.length?`<div class="tbl-wrap"><table><thead><tr><th>Department</th><th class="num">Achieved</th><th>KPIs below ${thr()}% and reason</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
+    ${miss.length?`<p class="small muted" style="margin-top:10px">No ${monthInfo(S.month).name} figures yet: ${miss.map(x=>esc(x.d.name)).join(', ')}.</p>`:''}</section>`;
+}
+function peoplePanel(){
+  const m=S.month, n = m===todayMonth()? todayWeek(m) : monthInfo(m).N; const per=`${m}-W${n}`;
+  const good = mergedRows('weekly',per,'good'), appr = mergedRows('weekly',per,'appr');
+  if (!good.length && !appr.length) return '';
+  const li = (r,t) => `<li><b style="font-weight:500">${esc(r.name)}</b> — ${esc(t)} <span class="faint small">(${esc(r.by)})</span></li>`;
+  return `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>People highlights · Week ${n}</h2></div><div class="grid2" style="grid-template-columns:1fr 1fr">
+    <div><div class="group-title">Appreciation</div><ul class="small" style="padding-left:18px;margin:0">${appr.map(r=>li(r,r.text)).join('')||'<li class="faint">None yet</li>'}</ul></div>
+    <div><div class="group-title">Good news</div><ul class="small" style="padding-left:18px;margin:0">${good.map(r=>li(r,[r.professional,r.personal].filter(Boolean).join(' · '))).join('')||'<li class="faint">None yet</li>'}</ul></div></div></section>`;
+}
+
 /* ---------- ui helpers ---------- */
 const $ = s => document.querySelector(s);
 function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
@@ -705,10 +839,10 @@ const emptyHTML = (t='No figures yet', b='Figures appear here once weekly entrie
 
 /* ---------- login ---------- */
 function recordFor(role,id){ const c=S.config; return role==='ceo'?c.ceo : role==='coord'?c.coordinator : role==='cluster'?cluster(id) : role==='hod'?dept(id) : proj(id); }
-function homeView(role){ return {ceo:'dashboard', cluster:'approvals', project:'entry', coord:'entry', hod:'dmonth'}[role]; }
+function homeView(role){ return {ceo:'dashboard', cluster:'approvals', project:'entry', coord:'entry', hod:'targets'}[role]; }
 function signIn(role,id){
   const rec = recordFor(role,id); S.user = {role,id,name: role==='ceo'?'CEO':rec.name};
-  S.view = homeView(role); S.projectSel = role==='project'?id:(visibleProjects()[0]?.id); S.deptSel = role==='hod'?id:(S.config.departments[0]?.id);
+  S.view = homeView(role); S.deptPeriod = role==='hod' ? 'weekly' : 'monthly'; S.projectSel = role==='project'?id:(visibleProjects()[0]?.id); S.deptSel = role==='hod'?id:(S.config.departments[0]?.id);
 }
 function renderLogin(err){
   const c=S.config;
@@ -733,11 +867,11 @@ function renderLogin(err){
 
 /* ---------- shell ---------- */
 const NAV = {
-  ceo:[['dashboard','Dashboard'],['meeting','Weekly meeting'],['mmeeting','Monthly meeting'],['qmeeting','Quarterly meeting'],['project','Project deep dive'],['approvals','Approvals'],['entry','Enter figures'],['notes','Meeting notes'],['departments','Departments'],['incentives','Incentives'],['staff','Staff master'],['masters','Projects & departments'],['settings','Settings']],
-  cluster:[['approvals','Approvals'],['notes','Meeting notes'],['dashboard','My projects'],['project','Project deep dive'],['meeting','Weekly meeting'],['mmeeting','Monthly meeting'],['qmeeting','Quarterly meeting']],
-  project:[['entry','Weekly entry'],['project','My progress']],
-  coord:[['entry','All projects entry'],['project','Project deep dive'],['meeting','Weekly meeting']],
-  hod:[['dmonth','Monthly target'],['dquarter','Quarterly'],['notes','Meeting notes'],['meeting','Weekly meeting'],['mmeeting','Monthly meeting'],['qmeeting','Quarterly meeting']]
+  ceo:[['dashboard','Dashboard'],['project','Project deep dive'],['departments','Departments'],['approvals','Approvals'],['entry','Enter figures'],['incentives','Incentive calculation'],['finalise','Finalise & adjust'],['policy','Incentive policy'],['staff','Staff master'],['masters','Projects & departments'],['settings','Settings'],['guide','Guidelines']],
+  cluster:[['approvals','Approvals'],['notes','Meeting notes'],['dashboard','My projects'],['project','Project deep dive'],['meeting','Weekly meeting'],['mmeeting','Monthly meeting'],['qmeeting','Quarterly meeting'],['guide','Guidelines']],
+  project:[['entry','Weekly entry'],['project','My progress'],['guide','Guidelines']],
+  coord:[['entry','All projects entry'],['project','Project deep dive'],['meeting','Weekly meeting'],['guide','Guidelines']],
+  hod:[['targets','Targets vs achieved'],['notes','Meeting notes'],['meeting','Weekly meeting'],['mmeeting','Monthly meeting'],['qmeeting','Quarterly meeting'],['guide','Guidelines']]
 };
 const ROLE_LABEL = {ceo:'All projects · full control', cluster:'Cluster head · approves figures', project:'Project login · enters figures', coord:'All projects · enters figures', hod:'Head of department'};
 function render(){
@@ -775,37 +909,39 @@ function view(){
     case 'settings': return vSettings();
     case 'notes': return vNotes();
     case 'departments': return vDepartments();
-    case 'dmonth': return vDeptMonth();
-    case 'dquarter': return vDeptQuarter();
+    case 'targets': case 'dmonth': case 'dquarter': return vDeptTargets();
+    case 'finalise': return vFinalise();
+    case 'policy': return vPolicy();
+    case 'guide': return vGuide();
     default: return vDashboard();
   }
 }
 
 /* ---------- dashboard ---------- */
 function vDashboard(){
-  const pids = visibleProjects().map(p=>p.id);
+  const pids = visibleProjects().map(p=>p.id); const ceo = S.user.role==='ceo';
   if (S.dashTab==='quarter'){
     const qd = calcQuarter(pids, S.quarter);
-    let h = topbar(S.user.role==='ceo'?'Portfolio dashboard':'My projects', `${qd.Q.label} · ${qd.Q.span} · month-end approved figures added up`, '', 'quarter');
+    let h = topbar(ceo?'CEO dashboard':'My projects', `${qd.Q.label} · ${qd.Q.span} · month-end approved figures added up`, '', 'quarter');
     h += tabs('dashTab',[['month','Monthly'],['quarter','Quarterly']]);
     return h + quarterProjects(qd);
   }
   const mode=viewMode(); const pf = calcPortfolio(pids, S.month, mode); const mi=pf.mi; const U=S.config.settings.unit;
-  const above = pf.list.filter(c=>c.pct>=thr()).length;
-  const run = S.user.role==='ceo' && S.staff.length ? incentiveRun(S.month) : null;
+  const run = ceo && S.staff.length ? incentiveRun(S.month) : null;
   const sub = `${mi.label} · ${fyLabel(S.month)} · ${mi.N} weeks · ${mode==='approved'?'approved figures only':'approved and pending figures'}${pf.lastIdx>=0?` · reported till Week ${pf.lastIdx+1}`:''}`;
-  let h = topbar(S.user.role==='ceo'?'Portfolio dashboard':'My projects', sub, `<button class="btn primary" data-act="meet">Start weekly meeting</button>`, 'month', true);
+  let h = topbar(ceo?'CEO dashboard':'My projects', sub, '', 'month', true);
   h += tabs('dashTab',[['month','Monthly'],['quarter','Quarterly']]);
-  h += `<div class="kpis">${kpi('Month target ('+esc(U)+')',fmt(pf.target))}${kpi('Achieved to date',fmt(pf.mtd))}${kpi('Achieved %',pctS(pf.pct), pf.expNow!=null?`${thr()}% pace by day ${pf.daysDone}: ${pctS(pf.expNow)}`:'')}${kpi('Still needed for '+thr()+'%', pf.target<=0?'–':fmt(pf.need80), pf.below.length+' project'+(pf.below.length===1?'':'s')+' below the line')}${kpi('Past the line',above+' / '+pf.list.length)}${run?kpi('Incentive so far',rs(run.total), monthClosed(S.month)?'month closed':'final at month end'):''}</div>`;
-  if (S.user.role==='ceo') h += reportingPanel();
-  h += `<section class="panel"><div class="panel-head"><h2>Where each project stands against the incentive line</h2><span class="muted small">Red dot marks ${thr()}%: at or above it, the project team earns ${slabPct(thr())}% incentive</span></div>${board(pf)}</section>`;
-  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>What each project needs to close the month at ${thr()}%</h2></div>${requiredTable(pf)}</section>`;
-  const series = pf.list.filter(c=>c.last).map(c=>({name:c.p.name,color:PCOL[S.config.projects.indexOf(c.p)%PCOL.length],points:[0,...c.weeks.map(w=>w.cumPct)]}));
-  h += `<div class="grid2" style="margin-top:18px"><section class="panel"><div class="panel-head"><h2>Cumulative achievement, week by week</h2></div>${series.length?lineChart({series,labels:weekLabels(mi),ref:thr()}):emptyHTML()}</section>
-    <section class="panel"><div class="panel-head"><h2>What this means</h2><span class="muted small">CHRO read</span></div>${insightsHTML(insightsFor(pf,{pending:true,incentive:S.user.role==='ceo'}))}</section></div>`;
-  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Monthly summary by building</h2><button class="btn sm" data-act="exportSummary">Download as Excel</button></div>${summaryTable(pf)}</section>`;
-  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Cumulative % by building at each weekend</h2></div>${heatmap(pf)}</section>`;
-  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>${fyLabel(S.month)} month-on-month</h2><span class="muted small">Approved figures</span></div>${fyTrend(pids)}</section>`;
+  h += execSummary(pf, ceo);
+  h += `<div class="kpis">${kpi('Month target ('+esc(U)+')',fmt(pf.target))}${kpi('Achieved so far',fmt(pf.mtd), pctS(pf.pct)+' of target')}${kpi('More needed for '+thr()+'%', pf.target<=0?'–':fmt(pf.need80), pf.below.length+' project'+(pf.below.length===1?'':'s')+' below the line')}${kpi('Projects past the line',pf.list.filter(c=>c.pct>=thr()).length+' / '+pf.list.length)}${run?kpi('Incentive so far',rs(run.total), run.fin?'finalised':monthClosed(S.month)?'month closed':'final at month end'):''}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>Project briefing</h2><span class="muted small">Where each project stands, what it needs and what to do</span></div><div class="pcards">${pf.list.map(projectCard).join('')}</div></section>`;
+  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>What each project needs to reach ${thr()}%</h2></div>${requiredTable(pf)}</section>`;
+  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Against the incentive line</h2><span class="muted small">Red dot is ${thr()}%; grey tick is where the project should be by now</span></div>${board(pf)}</section>`;
+  if (ceo) h += deptSnapshot() + bottleneckPanel() + peoplePanel() + `<div style="margin-top:18px">${reportingPanel()}</div>`;
+  h += `<details class="more"><summary>Building-wise detail, weekly trend and ${fyLabel(S.month)} history</summary><div class="inner">
+    <div class="panel-head"><h2>Achieved to date by building</h2><button class="btn sm" data-act="exportSummary">Download as Excel</button></div>${summaryTable(pf)}
+    <div class="panel-head" style="margin-top:22px"><h2>Cumulative % at each weekend</h2></div>${heatmap(pf)}
+    <div class="panel-head" style="margin-top:22px"><h2>Cumulative achievement, week by week</h2></div>${(()=>{ const series = pf.list.filter(c=>c.last).map(c=>({name:c.p.name,color:PCOL[S.config.projects.indexOf(c.p)%PCOL.length],points:[0,...c.weeks.map(w=>w.cumPct)]})); return series.length?lineChart({series,labels:weekLabels(mi),ref:thr()}):emptyHTML(); })()}
+    <div class="panel-head" style="margin-top:22px"><h2>${fyLabel(S.month)} month-on-month</h2></div>${fyTrend(pids)}</div></details>`;
   return h;
 }
 function quarterProjects(qd){
@@ -852,11 +988,11 @@ function projectBody(c){
   const pt = paceTone(c.pct, c.daysDone, c.mi.dim);
   let h = `<div class="kpis">${kpi('Month target ('+esc(U)+')',fmt(c.target))}${kpi('Achieved to date',fmt(c.mtd), c.last?'till Week '+c.last.n+' (day '+c.daysDone+' of '+c.mi.dim+')':'nothing approved yet')}${kpi('Achieved %',`<span style="color:var(--${pt==='none'?'ink':pt})">${pctS(c.pct)}</span>`, c.expNow!=null?`${thr()}% pace by now: ${pctS(c.expNow)}`:'')}${kpi('Still needed for '+thr()+'%', c.target<=0?'–':c.need80<=0?'Achieved':fmt(c.need80), c.need80>0&&!c.closed&&c.target>0?fmt(c.perWeek80)+' per 7-day week':'')}${kpi('Balance to 100%', c.target<=0?'–':fmt(c.need100), c.remDays+' day'+(c.remDays===1?'':'s')+' left')}</div>`;
   const chart = c.target>0 ? lineChart({series:[{name:c.p.name,color:'var(--steel)',points:[0,...c.weeks.map(w=>w.cumPct)], req:[null,...c.weeks.map((w,i)=> i===c.lastIdx ? w.cumPct : c.reqPct[i]).map((v,i,arr)=> c.lastIdx<0 && i===0 ? 0 : v)]}],labels:weekLabels(c.mi),ref:thr(),height:250}) : emptyHTML('No target set','');
+  h += `<div class="pcards" style="grid-template-columns:1fr;margin-bottom:18px">${projectCard(c).replace(/<div><button[\s\S]*?<\/div><\/article>/,'</article>')}</div>`;
   h += `<div class="grid2"><section class="panel"><div class="panel-head"><h2>Cumulative achievement</h2><span class="legend" style="margin:0"><span><i style="width:16px;height:0;border-top:2px dashed var(--brand)"></i>Required path to ${thr()}%</span></span></div>${chart}</section>
-    <section class="panel"><div class="panel-head"><h2>What this means</h2></div>${insightsHTML(insightsFor(pf,{label:c.p.name}))}</section></div>`;
-  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>What is needed to close at ${thr()}%</h2></div>${requiredTable(pf)}</section>`;
-  const rows = c.blds.map(b=>`<tr><td>${esc(b.name)} <span class="kind">${b.kind==='Infra'&&!/infra/i.test(b.name)?'Infra':''}</span></td><td class="num">${fmt(b.target)}</td>${b.weeks.map(w=>`<td class="num">${w.cum==null?'<span class="faint">–</span>':fmt(w.cum)}</td>`).join('')}<td class="num">${paceChip(b.pct,c.daysDone,c.mi.dim)}</td><td class="num">${c.mtd>0?Math.round(b.share)+'%':'–'}</td></tr>`).join('');
-  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Buildings and infra</h2><span class="muted small">Achieved to date at each weekend</span></div><div class="tbl-wrap"><table><thead><tr><th>Building</th><th class="num">Month target</th>${c.mi.weeks.map(w=>`<th class="num">Week ${w.n}</th>`).join('')}<th class="num">%</th><th class="num">Share of project</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <section class="panel"><div class="panel-head"><h2>Detailed notes</h2></div>${insightsHTML(insightsFor(pf,{label:c.p.name}).slice(1))||'<p class="muted">Nothing further to flag.</p>'}</section></div>`;
+  const rows = c.blds.map(b=>`<tr><td>${esc(b.name)} <span class="kind">${b.kind==='Infra'&&!/infra/i.test(b.name)?'Infra':''}</span></td><td class="num">${fmt(b.target)}</td>${b.weeks.map(w=>`<td class="num">${w.cum==null?'<span class="faint">–</span>':fmt(w.cum)}</td>`).join('')}<td class="num">${paceChip(b.pct,c.daysDone,c.mi.dim)}</td><td class="small">${b.remark?esc(b.remark)+`<div class="faint">Week ${b.remarkWeek}</div>`:'<span class="faint">–</span>'}</td></tr>`).join('');
+  h += `<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Buildings and infra</h2><span class="muted small">Achieved to date at each weekend</span></div><div class="tbl-wrap"><table><thead><tr><th>Building</th><th class="num">Month target</th>${c.mi.weeks.map(w=>`<th class="num">Week ${w.n}</th>`).join('')}<th class="num">%</th><th>Remarks / reason for delay</th></tr></thead><tbody>${rows}</tbody></table></div>
   <div class="row" style="margin-top:14px">${c.weeks.map(w=>`<span class="small">Week ${w.n}: <span class="chip ${w.hasData?w.status:'blank'}">${w.hasData?statusLabel(w.status):'Not entered'}</span></span>`).join('')}</div></section>`;
   return h;
 }
@@ -898,11 +1034,12 @@ function vEntry(){
       return `<tr data-row="${b.id}" data-p="${p.id}"><td>${esc(b.name)} <span class="kind">${b.kind==='Infra'&&!/infra/i.test(b.name)?'Infra':''}</span></td>
         <td style="width:24%"><input class="cell" inputmode="decimal" data-in="mt" data-p="${p.id}" data-b="${b.id}" value="${mt}" ${targetLocked||weekLocked?'disabled':''} aria-label="${esc(p.name)} ${esc(b.name)} month target"></td>
         <td style="width:30%"><input class="cell" inputmode="decimal" data-in="cum" data-p="${p.id}" data-b="${b.id}" data-prev="${pc??''}" value="${cur}" placeholder="${pc!=null?fmt(pc):''}" ${weekLocked?'disabled':''} aria-label="${esc(p.name)} ${esc(b.name)} achieved to date">${pc!=null?`<div class="faint small" style="text-align:right">Till last week: ${fmt(pc)}</div>`:''}</td>
-        <td class="num" data-o="pct"></td></tr>`; }).join('');
+        <td class="num" data-o="pct"></td>
+        <td style="width:26%"><input class="in" style="width:100%" data-in="r" data-p="${p.id}" data-b="${b.id}" value="${esc(v?.r||'')}" placeholder="Reason if behind" ${weekLocked?'disabled':''} aria-label="${esc(p.name)} ${esc(b.name)} remarks"></td></tr>`; }).join('');
     const cl = cluster(p.clusterId);
     h += `<section class="panel" style="margin-top:16px" data-proj="${p.id}" data-end="${mi.weeks[n-1].end}" data-dim="${mi.dim}"><div class="panel-head"><div><h2>${esc(p.name)}</h2><p class="muted small">Approver: ${esc(cl?cl.name:'CEO')}</p></div>${Object.keys(W.vals||{}).length?`<span class="chip ${W.status}">${statusLabel(W.status)}</span>`:'<span class="chip blank">Not entered</span>'}</div>${banner}
-      <div class="tbl-wrap"><table class="entryTbl"><thead><tr><th>Building</th><th class="num">${mi.name} target</th><th class="num">Achieved till end of Week ${n}</th><th class="num">% achieved</th></tr></thead>
-      <tbody>${rows}</tbody><tfoot><tr class="total"><td>Total</td><td class="num" data-o="tmt"></td><td class="num" data-o="tcum"></td><td class="num" data-o="tpct"></td></tr></tfoot></table></div>
+      <div class="tbl-wrap"><table class="entryTbl"><thead><tr><th>Building</th><th class="num">${mi.name} target</th><th class="num">Achieved till end of Week ${n}</th><th class="num">% achieved</th><th>Remarks / reason for delay</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr class="total"><td>Total</td><td class="num" data-o="tmt"></td><td class="num" data-o="tcum"></td><td class="num" data-o="tpct"></td><td></td></tr></tfoot></table></div>
       ${S.user.role==='ceo'&&W.status&&W.status!=='draft'?`<div class="row" style="margin-top:12px"><span class="spacer"></span><button class="btn danger sm" data-act="reopen" data-p="${p.id}">Reopen as draft</button></div>`:''}</section>`;
   });
   if (editable) h += `<div class="row" style="margin-top:16px"><p class="faint small">Leave a building blank if nothing changed; it carries last week's figure.</p><span class="spacer"></span><button class="btn" data-act="saveDraft">Save draft</button><button class="btn primary" data-act="submitWeek">${S.user.role==='ceo'?'Save and approve':list.length>1?'Submit all for approval':'Submit for approval'}</button></div>`;
@@ -922,24 +1059,27 @@ function updateEntryCalc(){
   });
 }
 async function persistEntry(action){
-  const n=S.week; const now=new Date().toISOString(); const by=S.user.name; const docs=[]; const drops=[];
+  const n=S.week; const now=new Date().toISOString(); const by=S.user.name; const docs=[]; const drops=[]; const noReason=[];
   for (const sec of document.querySelectorAll('section[data-proj]')){
     const p = proj(sec.dataset.proj); const e = JSON.parse(JSON.stringify(getEntry(S.month,p.id)));
     const {weekLocked, targetLocked} = entryLocks(e,n); if (weekLocked) continue;
     e.targets ||= {}; e.weeks ||= {}; const W = e.weeks[n] || {vals:{},status:'draft',log:[]}; W.vals ||= {}; W.log ||= [];
     let touched = Object.keys(W.vals).length>0;
     sec.querySelectorAll('tr[data-row]').forEach(tr=>{
-      const b=tr.dataset.row; const mt=tr.querySelector('[data-in="mt"]').value.trim(); const cI=tr.querySelector('[data-in="cum"]'); const cv=cI.value.trim();
+      const b=tr.dataset.row; const mt=tr.querySelector('[data-in="mt"]').value.trim(); const cI=tr.querySelector('[data-in="cum"]'); const cv=cI.value.trim(); const rv=tr.querySelector('[data-in="r"]').value.trim();
       if (!targetLocked){ if (mt==='') delete e.targets[b]; else { e.targets[b]=num(mt); touched=true; } }
       const prev = cI.dataset.prev!=='' ? num(cI.dataset.prev) : null;
-      if (cv!==''){ W.vals[b]={cum:num(cv)}; touched=true; if (prev!=null && num(cv)<prev) drops.push(`${p.name} ${proj(p.id).buildings.find(x=>x.id===b)?.name}`); }
+      const bn = proj(p.id).buildings.find(x=>x.id===b)?.name;
+      if (cv!==''){ W.vals[b]={cum:num(cv)}; touched=true; if (prev!=null && num(cv)<prev) drops.push(`${p.name} ${bn}`); }
       else if (prev!=null) W.vals[b]={cum:prev};
       else delete W.vals[b];
+      if (W.vals[b]){ if (rv){ W.vals[b].r=rv; touched=true; } const tgt=num(e.targets[b]); const mi2=monthInfo(S.month); if (!rv && tgt>0 && W.vals[b].cum/tgt*100 < paceExp(mi2.weeks[n-1].end,mi2.dim)*0.85) noReason.push(`${p.name} ${bn}`); }
     });
     if (!touched) continue;
     docs.push({p,e,W});
   }
   if (!docs.length) return toast('Nothing entered yet');
+  if (action!=='draft' && noReason.length && !(await ask('Reason for delay missing', `These buildings are well behind the ${thr()}% pace and have no remark: ${noReason.join(', ')}. The CEO dashboard shows remarks next to delays; please add a short reason.`, 'Submit without reason'))) return;
   if (drops.length && !(await ask('Achievement went down', `Achieved to date is lower than last week for: ${drops.join(', ')}. Achievement is cumulative, so it normally only goes up.`, 'Save anyway'))) return;
   try{
     for (const {p,e,W} of docs){
@@ -963,11 +1103,11 @@ function vApprovals(){
     let T={mt:0,pc:0,c:0};
     const rows = p.buildings.map(b=>{ const mt=num(e.targets?.[b.id]); const pc=prevCum(e,b.id,x.n); const v=W.vals?.[b.id]; const c = v? (has(v.cum)?num(v.cum):(pc||0)+num(v.a)) : (pc||0);
       T.mt+=mt; T.pc+=pc||0; T.c+=c;
-      return `<tr><td>${esc(b.name)}</td><td class="num">${fmt(mt)}</td><td class="num faint">${pc==null?'–':fmt(pc)}</td><td class="num"><b style="font-weight:500">${fmt(c)}</b></td><td class="num">${paceChip(mt>0?c/mt*100:null,mi.weeks[x.n-1].end,mi.dim)}</td></tr>`; }).join('');
+      return `<tr><td>${esc(b.name)}</td><td class="num">${fmt(mt)}</td><td class="num faint">${pc==null?'–':fmt(pc)}</td><td class="num"><b style="font-weight:500">${fmt(c)}</b></td><td class="num">${paceChip(mt>0?c/mt*100:null,mi.weeks[x.n-1].end,mi.dim)}</td><td class="small">${esc(v?.r||'')}</td></tr>`; }).join('');
     const key = x.month+'|'+x.pid+'|'+x.n;
     h += `<section class="panel"><div class="panel-head"><div><h2>${esc(p.name)} · Week ${x.n}, ${mi.label}</h2><p class="muted small">Submitted by ${esc(W.submittedBy||p.name)}${W.submittedAt?' on '+new Date(W.submittedAt).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):''}</p></div><span class="chip submitted">Awaiting approval</span></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Building</th><th class="num">Month target</th><th class="num">Till last week</th><th class="num">Achieved till this week</th><th class="num">% achieved</th></tr></thead><tbody>${rows}
-      <tr class="total"><td>Total</td><td class="num">${fmt(T.mt)}</td><td class="num">${fmt(T.pc)}</td><td class="num">${fmt(T.c)}</td><td class="num">${paceChip(T.mt>0?T.c/T.mt*100:null,mi.weeks[x.n-1].end,mi.dim)}</td></tr></tbody></table></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Building</th><th class="num">Month target</th><th class="num">Till last week</th><th class="num">Achieved till this week</th><th class="num">% achieved</th><th>Remarks</th></tr></thead><tbody>${rows}
+      <tr class="total"><td>Total</td><td class="num">${fmt(T.mt)}</td><td class="num">${fmt(T.pc)}</td><td class="num">${fmt(T.c)}</td><td class="num">${paceChip(T.mt>0?T.c/T.mt*100:null,mi.weeks[x.n-1].end,mi.dim)}</td><td></td></tr></tbody></table></div>
       <div class="row" style="margin-top:14px"><input class="in" style="flex:1;min-width:220px" id="note-${slug(key)}" placeholder="Comment (required when returning)"><button class="btn danger" data-act="decide" data-k="${key}" data-d="returned">Return for correction</button><button class="btn good" data-act="decide" data-k="${key}" data-d="approved">Approve</button></div></section>`;
   });
   const rec=[]; Object.values(S.entries).forEach(e=>{ const p=proj(e.projectId); if(!p) return; if (S.user.role==='cluster' && p.clusterId!==S.user.id) return; Object.entries(e.weeks||{}).forEach(([n,W])=>{ if (W.status==='approved'||W.status==='returned') rec.push({p,e,n,W,at:W.approvedAt||W.returnedAt||''}); }); });
@@ -986,47 +1126,110 @@ async function decide(key, d){
 }
 
 /* ---------- incentives ---------- */
+const ruleText = () => { const st=S.config.settings; return st.slabs.slice().sort((a,b)=>a.min-b.min).map(s=>`${s.min}%+ of target pays ${s.pct}%`).join(', ')+` of monthly ${st.base==='ctc'?'CTC':'gross'}`; };
 function vIncentives(){
-  const st=S.config.settings;
-  let h = topbar('Project incentive', `${monthInfo(S.month).label} · ${st.slabs.slice().sort((a,b)=>a.min-b.min).map(s=>`${s.min}%+ pays ${s.pct}%`).join(', ')} of monthly ${st.base==='ctc'?'CTC':'gross'} · approved figures only`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download register</button>`);
+  let h = topbar('Incentive calculation', `${monthInfo(S.month).label} · ${ruleText()} · approved figures only`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download full workbook</button>`);
   const run = incentiveRun(S.month);
-  if (!monthClosed(S.month)) h += `<div class="banner watch">${monthInfo(S.month).label} is not closed yet. Amounts use approved figures so far and become final once Week ${monthInfo(S.month).N} is approved for every project.</div>`;
-  const prow = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; return `<tr><td>${esc(c.p.name)}</td><td class="num">${fmt(c.target)}</td><td class="num">${fmt(c.mtd)}</td><td class="num">${pctChip(c.pct)}</td><td class="num">${q.earnPct?`<span class="pct good">${q.earnPct}%</span>`:'<span class="faint">Not yet</span>'}</td><td class="num">${b.heads} <span class="faint">(${(Math.round(b.fte*10)/10)} FTE)</span></td><td class="num"><b style="font-weight:500">${rs(b.earned)}</b></td><td class="num">${rs(b.potential)}</td></tr>`; }).join('');
-  h += `<div class="kpis">${kpi(monthClosed(S.month)?'Incentive payable':'Incentive so far',rs(run.total),'after overrides')}${kpi('Payable if all reach '+thr()+'%',rs(run.potential))}${kpi('People eligible',run.rows.filter(r=>r.final>0).length+' / '+run.rows.length)}${kpi('Projects qualifying',run.pf.list.filter(c=>run.pmap[c.pid].earnPct>0).length+' / '+run.pf.list.length)}</div>`;
-  h += `<section class="panel"><div class="panel-head"><h2>Project qualification</h2><span class="muted small">Dedicated staff earn on their project; shared staff earn on each project in proportion to their share</span></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Target</th><th class="num">Achieved</th><th class="num">%</th><th class="num">Incentive rate</th><th class="num">People</th><th class="num">Earned</th><th class="num">At ${thr()}%</th></tr></thead><tbody>${prow}</tbody></table></div></section>`;
+  if (run.fin) h += `<div class="banner good">Finalised on ${new Date(run.fin.at).toLocaleDateString('en-IN')} by ${esc(run.fin.by)}. Payable amounts come from Finalise & adjust.</div>`;
+  else if (!monthClosed(S.month)) h += `<div class="banner watch">${monthInfo(S.month).label} is not closed yet. These amounts use approved figures so far and change until Week ${monthInfo(S.month).N} is approved for every project.</div>`;
+  const prow = run.pf.list.map(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; return `<tr><td>${esc(c.p.name)}</td><td class="num">${fmt(c.target)}</td><td class="num">${fmt(c.mtd)}</td><td class="num">${pctChip(c.pct)}</td><td class="num">${q.earnPct?`<span class="pct good">${q.earnPct}%</span>`:'<span class="faint">0%</span>'}</td><td class="num">${b.dedHeads}</td><td class="num">${(Math.round(b.shFte*10)/10)}</td><td class="num">${rs(b.ded)}</td><td class="num">${rs(b.sh)}</td><td class="num"><b style="font-weight:500">${rs(b.earned)}</b></td></tr>`; }).join('');
+  h += `<div class="kpis">${kpi(run.fin?'Payable (finalised)':'Calculated so far',rs(run.total))}${kpi('If every project reaches '+thr()+'%',rs(run.potential))}${kpi('People earning',run.rows.filter(r=>r.final>0).length+' / '+run.rows.length)}${kpi('Projects qualifying',run.pf.list.filter(c=>run.pmap[c.pid].earnPct>0).length+' / '+run.pf.list.length)}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>By project</h2><span class="muted small">A project qualifies when its approved achievement for the month reaches ${thr()}% of target</span></div><div class="tbl-wrap"><table><thead><tr><th>Project</th><th class="num">Target</th><th class="num">Achieved</th><th class="num">%</th><th class="num">Rate</th><th class="num">Dedicated people</th><th class="num">Shared FTE</th><th class="num">Dedicated</th><th class="num">Shared</th><th class="num">Total</th></tr></thead><tbody>${prow}</tbody></table></div></section>`;
   if (!S.staff.length){ h += `<section class="panel">${emptyHTML('No staff loaded yet','Go to Staff master, download the template, fill it and upload it.')}<div class="row" style="justify-content:center"><button class="btn primary" data-act="nav" data-v="staff">Open staff master</button></div></section>`; return h; }
-  [['Dedicated','Dedicated project staff'],['Shared','Shared resources'],['Not tagged','Not tagged']].forEach(([k,title])=>{
+  [['Dedicated','Dedicated project staff'],['Shared','Shared resources and heads of shared functions'],['Not tagged','Not tagged']].forEach(([k,title])=>{
     const rows = run.rows.filter(r=>r.type===k); if(!rows.length) return;
-    const tr = rows.map(r=>`<tr><td>${esc(r.name)}<div class="faint small">${esc(r.designation||'')}${r.department?' · '+esc(r.department):''}</div></td><td>${r.lines.map(l=>`${esc(proj(l.pid)?.name)}${k==='Shared'?' '+Math.round(l.share)+'%':''}`).join(', ')||'<span class="faint">–</span>'}${r.issue?`<div class="small" style="color:var(--risk)">${esc(r.issue)}</div>`:''}</td><td class="num">${rs(r.base)}</td><td class="num">${rs(r.earned)}</td><td class="num">${rs(r.potential)}</td>
-      <td style="width:140px"><input class="cell" style="min-width:100px;max-width:130px" inputmode="decimal" data-chg="ovr" data-id="${esc(r.id)}" value="${r.override&&r.override.amt!=null?r.override.amt:''}" placeholder="—" aria-label="Override for ${esc(r.name)}"></td><td class="num"><b style="font-weight:500">${rs(r.final)}</b></td></tr>`).join('');
-    h += `<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="muted small">${rows.length} people · ${rs(rows.reduce((s,r)=>s+r.final,0))}</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Project allocation</th><th class="num">Monthly base</th><th class="num">Calculated</th><th class="num">At ${thr()}%</th><th>Override (₹)</th><th class="num">Payable</th></tr></thead><tbody>${tr}</tbody></table></div></section>`;
+    const tr = rows.map(r=>`<tr><td>${esc(r.name)}<div class="faint small">${esc(r.designation||'')}${r.department?' · '+esc(r.department):''}</div></td><td class="small">${r.lines.map(l=>`${esc(proj(l.pid)?.name)}${k==='Shared'?' '+Math.round(l.share)+'%':''} <span class="faint">(${l.pct==null?'–':Math.round(l.pct)+'%'} → ${l.rate}%)</span>`).join('<br>')||'<span class="faint">–</span>'}${r.issue?`<div class="small" style="color:var(--risk)">${esc(r.issue)}</div>`:''}</td><td class="small muted">${esc(r.rule)}</td><td class="num">${rs(r.base)}</td><td class="num"><b style="font-weight:500">${rs(r.earned)}</b></td>${run.fin?`<td class="num">${rs(r.final)}</td>`:''}</tr>`).join('');
+    h += `<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="muted small">${rows.length} people · ${rs(rows.reduce((s,r)=>s+r.earned,0))}</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Projects (achieved → rate)</th><th>Allocation rule</th><th class="num">Monthly base</th><th class="num">Calculated</th>${run.fin?'<th class="num">Final</th>':''}</tr></thead><tbody>${tr}</tbody></table></div></section>`;
   });
-  h += `<p class="faint small" style="margin-top:10px">Override replaces the calculated amount for that person this month (for example, joined mid-month or on long leave). Leave it blank to pay as calculated.</p>`;
   return h;
 }
-async function setOverride(id, val){
-  const d = JSON.parse(JSON.stringify(S.inc[S.month] || {month:S.month, overrides:{}})); d.overrides ||= {};
-  if (val==='') delete d.overrides[id]; else d.overrides[id] = {amt:num(val), by:S.user.name, at:new Date().toISOString()};
-  S.inc[S.month]=d; try{ await Store.set('incentives', S.month, d); toast('Override saved'); render(); }catch(e){ toast('Could not save: '+e.message); }
+function vFinalise(){
+  const run = incentiveRun(S.month); const mi=monthInfo(S.month); const closed=monthClosed(S.month);
+  let h = topbar('Finalise & adjust', `${mi.label}. Lock the calculated amounts, then change any person's final amount with a reason.`, `<button class="btn" data-act="exportIncentive" ${S.staff.length?'':'disabled'}>Download full workbook</button>`);
+  if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No staff loaded yet','Upload the staff master first.')}</section>`;
+  if (!run.fin){
+    h += `<div class="banner ${closed?'good':'watch'}">${closed?`${mi.label} is closed: every project's last week is approved.`:`${mi.label} is not closed yet. You can still finalise, but the amounts will not change if later weeks are approved.`}</div>`;
+    h += `<div class="kpis">${kpi('Calculated total',rs(run.calcTotal))}${kpi('People',run.rows.length)}${kpi('People earning',run.rows.filter(r=>r.earned>0).length)}</div>`;
+    h += `<section class="panel"><h2>Ready to finalise?</h2><p class="muted" style="margin:8px 0 16px;max-width:720px">Finalising takes a snapshot of every person's calculated incentive. After that you can change any amount, for example for a mid-month joiner, a leaver or someone on long leave, and record the reason. Reopening discards the snapshot and all changes.</p>
+      <button class="btn primary" data-act="finalise">Finalise ${mi.label}</button></section>`;
+    return h;
+  }
+  const f=run.fin; const changed = f.rows.filter(x=>Math.round(num(x.final))!==Math.round(num(x.calc)));
+  h += `<div class="banner good">Finalised on ${new Date(f.at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})} by ${esc(f.by)}. ${changed.length} amount${changed.length===1?'':'s'} changed from the calculation.</div>`;
+  h += `<div class="kpis">${kpi('Calculated',rs(f.rows.reduce((s,x)=>s+num(x.calc),0)))}${kpi('Final payable',rs(f.rows.reduce((s,x)=>s+num(x.final),0)))}${kpi('Net adjustment',rs(f.rows.reduce((s,x)=>s+num(x.final)-num(x.calc),0)))}</div>`;
+  const rows = f.rows.map(x=>`<tr><td style="min-width:190px">${esc(x.name)}<div class="faint small">${esc(x.designation||'')}${x.department?' · '+esc(x.department):''}</div></td><td>${esc(x.type)}</td><td class="small">${esc(x.alloc)}</td><td class="num">${rs(num(x.calc))}</td>
+    <td style="width:150px"><input class="cell" inputmode="decimal" data-chg="finAmt" data-id="${esc(x.id)}" value="${Math.round(num(x.final))}" aria-label="Final amount for ${esc(x.name)}"></td>
+    <td style="width:28%"><input class="in" style="width:100%" data-chg="finReason" data-id="${esc(x.id)}" value="${esc(x.reason||'')}" placeholder="${Math.round(num(x.final))!==Math.round(num(x.calc))?'Reason required':''}" aria-label="Reason for ${esc(x.name)}"></td>
+    <td class="num">${Math.round(num(x.final))!==Math.round(num(x.calc))?`<span class="pct ${num(x.final)>num(x.calc)?'good':'risk'}">${num(x.final)>num(x.calc)?'+':''}${rs(num(x.final)-num(x.calc)).replace('₹-','-₹')}</span>`:'<span class="faint">–</span>'}</td></tr>`).join('');
+  h += `<section class="panel"><div class="panel-head"><h2>Final amounts</h2><button class="btn danger sm" data-act="unfinalise">Reopen calculation</button></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Allocation</th><th class="num">Calculated</th><th>Final amount (₹)</th><th>Reason for change</th><th class="num">Change</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="faint small" style="margin-top:10px">Changes save as soon as you leave the box.</p></section>`;
+  return h;
 }
-
+async function finaliseMonth(){
+  const run = incentiveRun(S.month); const mi=monthInfo(S.month);
+  if (!(await ask(`Finalise ${mi.label}?`, monthClosed(S.month)?`This locks ${rs(run.calcTotal)} for ${run.rows.length} people. You can still adjust individual amounts afterwards.`:`${mi.label} is not closed yet. Amounts will be locked at today's figures.`, 'Finalise'))) return;
+  const rows = run.rows.map(r=>({id:r.id,name:r.name,designation:r.designation,department:r.department,location:r.location,type:r.type,rule:r.rule,alloc:allocText(r),base:r.base,
+    lines:r.lines.map(l=>({pid:l.pid,project:proj(l.pid)?.name,share:l.share,pct:l.pct,rate:l.rate,amt:Math.round(l.e)})),calc:Math.round(r.earned),final:Math.round(r.earned),reason:''}));
+  const d = {...(S.inc[S.month]||{}), month:S.month, finalized:{at:new Date().toISOString(), by:S.user.name, rows}};
+  S.inc[S.month]=d; try{ await Store.set('incentives',S.month,d); toast('Finalised'); render(); }catch(e){ toast('Could not save: '+e.message); }
+}
+async function updateFinal(id, field, val){
+  const d = JSON.parse(JSON.stringify(S.inc[S.month])); const x = d.finalized.rows.find(r=>r.id===id); if(!x) return;
+  if (field==='final') x.final = Math.max(0, Math.round(num(val))); else x.reason = val.trim();
+  d.finalized.editedAt=new Date().toISOString();
+  S.inc[S.month]=d; try{ await Store.set('incentives',S.month,d); toast(field==='final'?'Amount updated':'Reason saved'); if (field==='final') render(); }catch(e){ toast('Could not save: '+e.message); }
+}
+function vPolicy(){
+  const st=S.config.settings; const T=thr(); const rate=slabPct(T); const base = st.base==='ctc'?'monthly CTC':'monthly gross';
+  const slabs = st.slabs.slice().sort((a,b)=>a.min-b.min);
+  const ex = (b,share,r) => Math.round(b*share/100*r/100);
+  return topbar('Incentive policy','How project incentive is calculated, who it covers and how it is governed.','','none') + `<section class="panel guide" style="max-width:980px">
+  <h2 style="margin-top:0">1. Principle</h2><p>Incentive rewards the people who make a project deliver its monthly target. It is earned project by project: a project that crosses the line pays its team, a project that does not pays nothing, and one project's surplus never covers another project's shortfall.</p>
+  <h2>2. When a project qualifies</h2><div class="formula">Project achievement % = approved achievement for the month ÷ month target × 100
+Qualifies when achievement % ≥ ${T}%</div>
+  <ul><li>Only figures approved by the cluster head count. Drafts and pending weeks are ignored.</li><li>The month is final when the last week (Week ${monthInfo(S.month).N} of ${monthInfo(S.month).label}) is approved for every project.</li><li>Targets are locked once any week of the month is approved, so the bar cannot move after the fact.</li></ul>
+  <h2>3. Rate</h2><div class="formula">${slabs.map(s=>`Achievement ≥ ${s.min}%  →  ${s.pct}% of ${base}`).join('\n')}
+Below ${slabs[0].min}%  →  nil</div>
+  <h2>4. Formula for every person</h2><div class="formula">Incentive = Σ over each project the person is allocated to:
+            ${base} × allocation share % × project rate %</div>
+  <h3>Dedicated project staff</h3><p>100% of their time is on one project, so they earn fully on that project.</p>
+  <div class="formula">Example: Site engineer on Marvel, ${base} ₹60,000. Marvel reaches ${T}%.
+₹60,000 × 100% × ${rate}% = ₹${nf0.format(ex(60000,100,rate))}</div>
+  <h3>Shared resources</h3><p>People who support several projects (QS, MEP, planning, safety). Their base is split across the projects they support, and they earn only on the share belonging to projects that qualify.</p>
+  <div class="formula">Example: QS engineer, ${base} ₹90,000, Shared "Marvel:60, Miraya:40".
+Marvel qualifies, Miraya does not.
+₹90,000 × 60% × ${rate}% + ₹90,000 × 40% × 0% = ₹${nf0.format(ex(90000,60,rate))}</div>
+  <h3>Heads of shared functions (HOD Contracts, Planning, Purchase and similar)</h3><p>They influence every project, but larger projects carry more of the business. Mark them <b>All</b> in the Shared column: their base is spread across all projects in proportion to each project's month target. Use <b>All equal</b> only when an equal split is intended.</p>
+  <div class="formula">Example: HOD Contracts, ${base} ₹2,00,000, Shared "All".
+Targets: Marvel 400, Miraya 400, Midas City 200 (total 1,000) → shares 40%, 40%, 20%.
+Marvel and Midas City qualify: ₹2,00,000 × (40% + 20%) × ${rate}% = ₹${nf0.format(ex(200000,60,rate))}</div>
+  <h2>5. What the staff master must say</h2><ul><li><b>Dedicated:</b> the project name (or Yes, with the project in Location).</li><li><b>Shared:</b> project names (equal split), names with shares (Marvel:60, Miraya:40), All (target-weighted) or All equal.</li><li>Fill only one of the two. Base pay is taken from ${st.base==='ctc'?'Monthly CTC':'Monthly Gross'} (change in Settings).</li></ul>
+  <h2>6. Adjustments and governance</h2><ul>
+   <li><b>Finalise</b> the month in Finalise & adjust once it is closed. Amounts are then locked.</li>
+   <li><b>Pro-rate</b> for mid-month joiners and leavers by days on the rolls; enter the adjusted amount with the reason.</li>
+   <li><b>Withhold</b> for people serving notice, on long unpaid leave, or under a disciplinary process; record the reason.</li>
+   <li><b>Recover</b> in the following month if approved figures are later found wrong; record the recovery as a reduction with the reason.</li>
+   <li>Pay with the following month's salary after CEO sign-off. The downloadable workbook is the payroll input and the audit record.</li></ul>
+  <h2>7. Design notes</h2><div class="note">A single ${T}% gate is simple to explain but creates a cliff: ${T-1}% pays nothing, ${T}% pays everything. If projects start bunching figures just above the line, add a partial slab (for example 70–79% paying half the rate) and an accelerator above 100% in Settings. Review the rule after two quarters of data.</div>
+  </section>`;
+}
 /* ---------- staff master ---------- */
 const STAFF_COLS = [['name','Name'],['designation','Designation'],['department','Department'],['dedicated','Dedicated'],['shared','Shared'],['location','Location'],['gross','Monthly Gross'],['ctcYear','Yearly CTC'],['ctcMonth','Monthly CTC']];
 function vStaff(){
   let h = topbar('Staff master', 'People covered by project incentive. Upload the filled template to replace the list.', `<button class="btn" data-act="template">Download template</button><label class="btn primary" style="display:inline-block">Upload filled template<input type="file" accept=".xlsx,.xls,.csv" data-chg="upload" hidden></label>`,'none');
   if (!S.staff.length) return h + `<section class="panel">${emptyHTML('No staff yet','Download the template, fill one row per person, and upload it here.')}<div class="small muted" style="max-width:640px;margin:0 auto 10px">${templateHelp()}</div></section>`;
-  const rows = S.staff.map(r=>{ const a=allocation(r); return `<tr><td>${esc(r.name)}</td><td>${esc(r.designation)}</td><td>${esc(r.department)}</td><td>${a.type}</td><td>${a.alloc.map(x=>esc(proj(x.pid)?.name)+(a.type==='Shared'?' '+Math.round(x.share)+'%':'')).join(', ')}${a.issue?`<div class="small" style="color:var(--risk)">${esc(a.issue)}</div>`:''}</td><td>${esc(r.location)}</td><td class="num">${rs(num(r.gross))}</td><td class="num">${rs(num(r.ctcMonth))}</td><td class="num">${rs(num(r.ctcYear))}</td><td><button class="btn ghost sm" data-act="delStaff" data-id="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">Remove</button></td></tr>`; }).join('');
-  const issues = S.staff.filter(r=>allocation(r).issue).length;
+  const rows = S.staff.map(r=>{ const a=allocation(r,S.month); return `<tr><td>${esc(r.name)}</td><td>${esc(r.designation)}</td><td>${esc(r.department)}</td><td>${a.type}</td><td>${a.alloc.map(x=>esc(proj(x.pid)?.name)+(a.type==='Shared'?' '+Math.round(x.share)+'%':'')).join(', ')}${a.issue?`<div class="small" style="color:var(--risk)">${esc(a.issue)}</div>`:''}</td><td>${esc(r.location)}</td><td class="num">${rs(num(r.gross))}</td><td class="num">${rs(num(r.ctcMonth))}</td><td class="num">${rs(num(r.ctcYear))}</td><td><button class="btn ghost sm" data-act="delStaff" data-id="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">Remove</button></td></tr>`; }).join('');
+  const issues = S.staff.filter(r=>allocation(r,S.month).issue).length;
   h += `${issues?`<div class="banner risk">${issues} ${issues>1?'people have':'person has'} a project that could not be matched. Fix the Dedicated or Shared column and upload again.</div>`:''}
   <section class="panel"><div class="panel-head"><h2>${S.staff.length} people</h2><button class="btn danger sm" data-act="clearStaff">Remove all</button></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Type</th><th>Projects</th><th>Location</th><th class="num">Monthly gross</th><th class="num">Monthly CTC</th><th class="num">Yearly CTC</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>
   <section class="panel"><h3 style="margin-bottom:6px">How the template is read</h3><div class="small muted">${templateHelp()}</div></section>`;
   return h;
 }
 function templateHelp(){ const names = S.config.projects.map(p=>p.name).join(', ');
-  return `<p><b style="font-weight:500">Dedicated:</b> the project name (for example Marvel), or Yes to use the Location column as the project.</p><p style="margin-top:4px"><b style="font-weight:500">Shared:</b> projects separated by commas. Equal split by default (Marvel, Miraya); unequal with a colon (Marvel:60, Miraya:40); or All for every project.</p><p style="margin-top:4px">Fill only one of Dedicated or Shared. Valid project names: ${esc(names)}.</p>`; }
+  return `<p><b style="font-weight:500">Dedicated:</b> the project name (for example Marvel), or Yes to use the Location column as the project.</p><p style="margin-top:4px"><b style="font-weight:500">Shared:</b> projects separated by commas. Equal split by default (Marvel, Miraya); unequal with a colon (Marvel:60, Miraya:40); All for heads of shared functions (every project, weighted by month target); All equal for an equal split across every project.</p><p style="margin-top:4px">Fill only one of Dedicated or Shared. Valid project names: ${esc(names)}.</p>`; }
 function downloadTemplate(){
   const ws = XLSX.utils.aoa_to_sheet([STAFF_COLS.map(c=>c[1])]); ws['!cols']=STAFF_COLS.map((c,i)=>({wch:i===0?26:16}));
-  const help = XLSX.utils.aoa_to_sheet([['How to fill'],['Dedicated','Project name (e.g. Marvel) or "Yes" to use Location as the project'],['Shared','Comma-separated projects. Equal split: Marvel, Miraya. Unequal: Marvel:60, Miraya:40. Every project: All'],['Rule','Fill only one of Dedicated / Shared per person'],['Amounts','Monthly Gross, Yearly CTC, Monthly CTC in rupees, numbers only'],[],['Valid project names'],...S.config.projects.map(p=>[p.name])]);
+  const help = XLSX.utils.aoa_to_sheet([['How to fill'],['Dedicated','Project name (e.g. Marvel) or "Yes" to use Location as the project'],['Shared','Comma-separated projects. Equal split: Marvel, Miraya. Unequal: Marvel:60, Miraya:40. Heads of shared functions: All (weighted by month target) or All equal'],['Rule','Fill only one of Dedicated / Shared per person'],['Amounts','Monthly Gross, Yearly CTC, Monthly CTC in rupees, numbers only'],[],['Valid project names'],...S.config.projects.map(p=>[p.name])]);
   help['!cols']=[{wch:22},{wch:90}];
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Staff'); XLSX.utils.book_append_sheet(wb, help, 'Instructions');
   saveFile('Project_Incentive_Staff_Template.xlsx', wbBlob(wb));
@@ -1132,50 +1335,102 @@ async function saveNotes(){
   const id = noteId(type,period,S.user); S.meetings[id]=doc;
   try{ await Store.set('meetings', id, doc); S.dirty=false; toast('Notes saved'); render(); }catch(e){ toast('Could not save: '+e.message); }
 }
-function notesSlide(type, period, key, empty){
-  const sh=SHEETS[key]; const rows = mergedRows(type,period,key);
+function notesSlide(type, period, key, empty, filter){
+  const sh=SHEETS[key]; const rows = mergedRows(type,period,key).filter(filter||(()=>true));
   const pad = Array.from({length:Math.max(0,ROWS-rows.length)},()=>null);
   const show = (r,f,t) => !r ? '' : t==='status' ? stChip(r[f]) : t==='date' ? (r[f]?new Date(r[f]).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'') : esc(r[f]||'') + (f==='area'&&r.from?`<div class="faint small">since ${esc(r.from)}</div>`:'');
   const body = rows.concat(pad).map((r,i)=>`<tr style="height:40px"><td class="faint">${i+1}</td>${sh.cols.map(([f,,t])=>`<td>${show(r,f,t)}</td>`).join('')}<td class="muted small">${r?esc(r.by):''}</td></tr>`).join('');
   return `<section class="panel">${rows.length?'':`<p class="faint small" style="margin-bottom:10px">${empty}</p>`}<div class="tbl-wrap"><table><thead><tr><th style="width:40px">#</th>${sh.cols.map(([,l])=>`<th>${l}</th>`).join('')}<th>Shared by</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
 }
 
-/* ---------- departments: monthly & quarterly target vs achieved ---------- */
+/* ---------- guidelines: one page per role ---------- */
+function vGuide(){
+  const T=thr(), U=S.config.settings.unit, role=S.user.role;
+  const cadence = `<h2>Weekly rhythm</h2><ol>
+    <li><b>Sunday:</b> the week closes. Figures are "as on Sunday".</li>
+    <li><b>Monday 12 noon:</b> project logins or the Project Coordinator submit the week.</li>
+    <li><b>Monday 6 pm:</b> cluster heads approve or return; cluster heads and HODs save their meeting notes.</li>
+    <li><b>Tuesday:</b> weekly meeting. Each cluster head and HOD presents from their own login.</li>
+    <li><b>By the 3rd working day of a month:</b> last week of the previous month approved; HODs complete monthly figures. Monthly meeting follows.</li>
+    <li><b>By the 7th:</b> CEO finalises incentive; it is paid with that month's salary.</li>
+    <li><b>By the 10th after a quarter ends:</b> HODs complete quarterly figures and Operational Excellence notes. Quarterly meeting follows.</li></ol>`;
+  const weeks = `<h2>How weeks work</h2><p>Weeks follow the calendar, Monday to Sunday, so a month has 4 or 5 weeks. A stub of one or two days at the start or end of a month joins the neighbouring week. Screens show only Week 1, Week 2 and so on.</p>`;
+  const notes = `<h2>Meeting notes</h2><p>Tabs for Weekly, Monthly and Quarterly meetings. Each sheet has 10 rows.</p><ul>
+    <li><b>Good news:</b> a person or team, with personal and/or professional news.</li><li><b>Appreciation:</b> a person or department team and what they did.</li>
+    <li><b>Bottlenecks:</b> what is blocked, whose support is needed, the date it is needed by, and status. Anything not Resolved carries forward to your next notes automatically until you mark it Resolved. The CEO sees every open bottleneck.</li>
+    ${role==='hod'||role==='cluster'?'<li><b>Operational Excellence</b> (quarterly only): the initiative, the output received so far and the output expected.</li>':''}</ul>`;
+  const logic = `<h2>How the numbers work</h2><div class="formula">% achieved = achieved to date ÷ month target × 100
+${T}% pace by a weekend = ${T}% × days passed ÷ days in month
+More needed for ${T}% = ${T}% of target − achieved to date, split across the remaining weeks by days</div>
+    <ul><li><b>On track</b>: at or ahead of the ${T}% pace. <b>Needs push</b>: behind, but reachable at up to 1.5 times the pace so far. <b>At risk</b>: needs more than that. <b>Achieved</b>: past ${T}%.</li>
+    <li>Only approved figures count on the CEO dashboard and for incentive.</li></ul>`;
+  const G = {
+  project: `<h2>Your tabs</h2><h3>Weekly entry</h3><ol>
+    <li>Pick the week. In Week 1, enter each building's <b>month target</b> once. It locks after the first week is approved; only the CEO can change it after that.</li>
+    <li>Every weekend, enter <b>achieved till the end of this week</b>: the running total for the month, not just this week's work. It should never go down.</li>
+    <li>Leave a building blank if nothing changed; last week's figure carries forward.</li>
+    <li>In <b>Remarks</b>, give a short reason for any building that is behind (drawings awaited, material short, contractor manpower). You will be asked if a building is well behind pace with no reason.</li>
+    <li>Click <b>Submit for approval</b>. If your cluster head returns it, read the comment, correct, and submit again.</li></ol>
+    <h3>My progress</h3><p>Your project's card, the required amount for each remaining week, and building-wise figures.</p>${logic}${weeks}${cadence}`,
+  coord: `<h2>Your tabs</h2><h3>All projects entry</h3><ol><li>Pick the week. Every project appears on one page.</li><li>Fill month targets (Week 1) and achieved to date for each building, with remarks for delays.</li><li>Click <b>Submit all for approval</b>. Each project goes to its own cluster head. Projects already submitted or approved are locked.</li></ol>
+    <h3>Weekly meeting</h3><p>View-only walkthrough of all projects.</p>${logic}${weeks}${cadence}`,
+  cluster: `<h2>Your tabs</h2><h3>Approvals</h3><ol><li>Check each submission against site reality: month target, last week, this week, and remarks.</li><li><b>Approve</b> only when the figures are right. Approved figures go straight to the CEO dashboard and count for incentive.</li><li><b>Return for correction</b> with a clear comment when anything is wrong.</li></ol>
+    <h3>Meeting notes</h3>${notes.replace('<h2>Meeting notes</h2>','')}<h3>My projects and Project deep dive</h3><p>Only your projects. Each project card says where it stands, how much more it needs, the main issue and the action.</p>
+    <h3>Weekly, monthly and quarterly meetings</h3><p>Your pages to present: good news, appreciation, your projects, what they need for ${T}%, and bottlenecks. Use the arrow keys to move between pages.</p>${logic}${weeks}${cadence}`,
+  hod: `<h2>Your tabs</h2><h3>Targets vs achieved</h3><ol>
+    <li>List 3 to 6 <b>KPIs or goals</b> that describe your department's output, each measurable: a count, an amount, days, or a percentage. Give each a unit.</li>
+    <li>Choose how each KPI <b>adds up</b>: <b>Sum</b> for counts and amounts (drawings released, payments made); <b>Average</b> for rates and percentages (on-time %, turnaround days).</li>
+    <li><b>Weekly tab:</b> each week, enter target and achieved.</li>
+    <li><b>Monthly tab:</b> the weeks add up automatically (grey figures). Type a figure only to replace them, for example for a KPI you measure monthly.</li>
+    <li><b>Quarterly tab:</b> the months add up automatically. If you did not fill months, type the quarter's planned and achieved directly.</li>
+    <li>Write a <b>reason for delay</b> in Remarks for any KPI below ${T}%. The CEO sees your reason next to the number.</li></ol>
+    <div class="formula">KPI % = achieved ÷ target × 100
+Department achievement = average of your KPI percentages</div>${notes}
+    <h3>Weekly, monthly and quarterly meetings</h3><p>You present from your own login: good news, appreciation, your department's page, Operational Excellence (quarterly) and bottlenecks raised by you or needing your department's support.</p>${cadence}`,
+  ceo: `<h2>Your tabs</h2><ul>
+    <li><b>Dashboard:</b> one-line summary, one card per project (status, what it needs, issue, action), what each project needs to reach ${T}%, departments below target with reasons, open bottlenecks, people highlights, and who has not reported. Detail tables are folded at the bottom.</li>
+    <li><b>Departments:</b> weekly, monthly and quarterly achievement for every department with the HOD's reason for delay.</li>
+    <li><b>Approvals:</b> projects without a cluster head come to you.</li>
+    <li><b>Incentive calculation → Finalise & adjust → download:</b> check the calculation, finalise when the month closes, change any individual amount with a reason, then download the workbook for payroll. See <b>Incentive policy</b> for the logic.</li>
+    <li><b>Projects & departments, Settings:</b> add or remove projects, buildings, departments and cluster heads; set passwords, the incentive line and slabs.</li></ul>${logic}${cadence}`
+  };
+  return topbar('Guidelines', 'How to use each tab, what to fill and the logic behind it.', '', 'none') + `<section class="panel guide" style="max-width:980px">${G[role]||''}</section>`;
+}
+
+/* ---------- departments: targets vs achieved (weekly / monthly / quarterly) ---------- */
 function deptSelector(){ return S.user.role==='hod' ? '' : `<select class="in" data-chg="deptSel" aria-label="Department">${S.config.departments.map(d=>`<option value="${d.id}" ${d.id===S.deptSel?'selected':''}>${esc(d.name)}</option>`).join('')}</select>`; }
 function curDept(){ if (!dept(S.deptSel)) S.deptSel = S.config.departments[0]?.id; return dept(S.deptSel); }
-function newKpiRows(n, cols){ return Array.from({length:n},(_,i)=>`<tr data-new="${i}"><td class="idx">+</td><td><input class="in" data-nf="1" data-k="new${i}" data-f="name" placeholder="New KPI or goal"></td><td><input class="in" data-nf="1" data-k="new${i}" data-f="unit" placeholder="Unit" style="width:90px"></td>${cols(`new${i}`)}</tr>`).join(''); }
-function vDeptMonth(){
-  const d = curDept(); if(!d) return topbar('Departments')+emptyHTML('No departments','The CEO can add departments.');
-  const dm = deptMonth(d.id, S.month);
-  let h = topbar(`${esc(d.name)} · monthly target`, `${monthInfo(S.month).label}. List your KPIs or goals once; each month enter target and achieved. Months add up into the quarter.`, deptSelector());
-  const rows = dm.kpis.map((k,i)=>`<tr><td class="idx">${i+1}</td><td><input class="in" data-nf="1" data-k="${k.id}" data-f="name" value="${esc(k.name)}" aria-label="KPI name"></td><td><input class="in" data-nf="1" data-k="${k.id}" data-f="unit" value="${esc(k.unit||'')}" style="width:90px" aria-label="Unit"></td>
-    <td><select class="in" data-nf="1" data-k="${k.id}" data-f="agg" aria-label="Quarter adds up as"><option value="sum" ${k.agg!=='avg'?'selected':''}>Sum</option><option value="avg" ${k.agg==='avg'?'selected':''}>Average</option></select></td>
-    <td><input class="cell" data-nf="1" inputmode="decimal" data-k="${k.id}" data-f="t" value="${k.t??''}" aria-label="Target"></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="${k.id}" data-f="a" value="${k.a??''}" aria-label="Achieved"></td><td class="num">${pctChip(k.pct)}</td>
+const PERIODS = [['weekly','Weekly'],['monthly','Monthly'],['quarterly','Quarterly']];
+function periodText(per){ const mi=monthInfo(S.month); return per==='weekly' ? `${mi.label} · Week ${S.week}` : per==='monthly' ? mi.label : `${qInfo(S.quarter).label} (${qInfo(S.quarter).span})`; }
+function weekButtons(){ const mi=monthInfo(S.month); if (S.week>mi.N) S.week=mi.N; return `<div class="weeks" role="tablist" style="margin-bottom:6px">${mi.weeks.map(w=>`<button role="tab" aria-selected="${w.n===S.week}" class="${w.n===S.week?'on':''}" data-act="week" data-v="${w.n}"><b>Week ${w.n}</b></button>`).join('')}</div>`; }
+function vDeptTargets(){
+  const d = curDept(); if(!d) return topbar('Targets vs achieved')+emptyHTML('No departments','The CEO can add departments.');
+  const per = S.deptPeriod; const r = deptPeriod(d.id, per); const low = per==='weekly'?null:per==='monthly'?'weeks':'months';
+  const help = {weekly:'Enter what was planned and achieved this week for each KPI.', monthly:'Grey figures are the weeks added up. Type only to replace them, for example when a KPI is measured monthly.', quarterly:'Grey figures are the months added up. Type only to replace them, for example when the quarter was not filled month by month.'}[per];
+  let h = topbar(`${esc(d.name)} · targets vs achieved`, `${periodText(per)}. ${help}`, deptSelector(), per==='quarterly'?'quarter':'month');
+  h += tabs('deptPeriod', PERIODS);
+  if (per==='weekly') h += weekButtons();
+  const rows = r.kpis.map((k,i)=>`<tr><td class="idx">${i+1}</td><td><input class="in" data-nf="1" data-k="${k.id}" data-f="name" value="${esc(k.name)}" aria-label="KPI name"></td><td><input class="in" data-nf="1" data-k="${k.id}" data-f="unit" value="${esc(k.unit||'')}" style="width:80px" aria-label="Unit"></td>
+    <td><select class="in" data-nf="1" data-k="${k.id}" data-f="agg" aria-label="Adds up as"><option value="sum" ${k.agg!=='avg'?'selected':''}>Sum</option><option value="avg" ${k.agg==='avg'?'selected':''}>Average</option></select></td>
+    <td><input class="cell" data-nf="1" inputmode="decimal" data-k="${k.id}" data-f="t" value="${k.rawT}" placeholder="${k.fromT!=null?fmt(k.fromT):''}" aria-label="Target"></td>
+    <td><input class="cell" data-nf="1" inputmode="decimal" data-k="${k.id}" data-f="a" value="${k.rawA}" placeholder="${k.fromA!=null?fmt(k.fromA):''}" aria-label="Achieved"></td><td class="num">${pctChip(k.pct)}</td>
+    <td style="width:26%"><input class="in" style="width:100%" data-nf="1" data-k="${k.id}" data-f="r" value="${esc(k.rawR)}" placeholder="${!k.rawR&&k.r?esc(k.r):'Reason if below target'}" aria-label="Remarks"></td>
     <td><button class="btn ghost sm" data-act="delKpi" data-k="${k.id}" aria-label="Delete ${esc(k.name)}">Delete</button></td></tr>`).join('');
-  const nc = key => `<td><select class="in" data-nf="1" data-k="${key}" data-f="agg"><option value="sum">Sum</option><option value="avg">Average</option></select></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="${key}" data-f="t"></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="${key}" data-f="a"></td><td></td><td></td>`;
-  h += `<div class="kpis">${kpi('KPIs',dm.kpis.length)}${kpi('Average achievement',pctS(dm.pct))}${kpi('Quarter to date',pctS(deptQuarter(d.id,quarterOf(S.month).id).pct),quarterOf(S.month).label)}</div>`;
-  h += `<section class="panel"><div class="panel-head"><h2>Target vs achieved</h2><span class="muted small">"Quarter adds up as" Sum for counts and amounts, Average for rates and percentages</span></div>
-    <div class="tbl-wrap sheet"><table><thead><tr><th>#</th><th>KPI / goal</th><th>Unit</th><th>Quarter adds up as</th><th class="num">Target</th><th class="num">Achieved</th><th class="num">%</th><th></th></tr></thead><tbody>${rows}${newKpiRows(3,nc)}</tbody></table></div>
-    <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn primary" data-act="saveDeptMonth">Save</button></div></section>`;
-  return h;
-}
-function vDeptQuarter(){
-  const d = curDept(); if(!d) return topbar('Departments')+emptyHTML('No departments','');
-  const dq = deptQuarter(d.id, S.quarter); const Q=dq.Q;
-  let h = topbar(`${esc(d.name)} · quarterly`, `${Q.label} (${Q.span}). Planned and achieved add up from the monthly entries. If months were not entered, write the quarter figures directly.`, deptSelector(), 'quarter');
-  const mh = Q.months.map(m=>`<th class="num">${MN[+m.slice(5)-1]}</th>`).join('');
-  const rows = dq.kpis.map((k,i)=>`<tr><td class="idx">${i+1}</td><td>${esc(k.name)}<div class="faint small">${esc(k.unit||'')}${k.agg==='avg'?' · average':''}</div></td>${k.ms.map(x=>`<td class="num small">${x.t==null&&x.a==null?'<span class="faint">–</span>':`${fmt(x.a)} <span class="faint">/ ${fmt(x.t)}</span>`}</td>`).join('')}
-    <td><input class="cell" data-nf="1" inputmode="decimal" data-k="${k.id}" data-f="qt" value="${k.qT}" placeholder="${k.fromT!=null?fmt(k.fromT):''}" aria-label="Quarter planned"></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="${k.id}" data-f="qa" value="${k.qA}" placeholder="${k.fromA!=null?fmt(k.fromA):''}" aria-label="Quarter achieved"></td><td class="num">${pctChip(k.pct)}</td></tr>`).join('');
-  const nc = key => Q.months.map(()=>'<td></td>').join('')+`<td><input class="cell" data-nf="1" inputmode="decimal" data-k="${key}" data-f="qt"></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="${key}" data-f="qa"></td><td></td>`;
-  h += `<div class="kpis">${kpi('KPIs',dq.kpis.length)}${kpi('Quarter achievement',pctS(dq.pct))}</div>`;
-  h += `<section class="panel"><div class="panel-head"><h2>Quarter planned vs achieved</h2><span class="muted small">Month cells show achieved / target. Grey figures in the quarter boxes come from the months; type over them only to replace.</span></div>
-    <div class="tbl-wrap sheet"><table><thead><tr><th>#</th><th>KPI / goal</th>${mh}<th class="num">Quarter planned</th><th class="num">Quarter achieved</th><th class="num">%</th></tr></thead><tbody>${rows}${newKpiRows(2,nc)}</tbody></table></div>
-    <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn primary" data-act="saveDeptQuarter">Save</button></div></section>`;
+  const nr = Array.from({length:3},(_,i)=>`<tr><td class="idx">+</td><td><input class="in" data-nf="1" data-k="new${i}" data-f="name" placeholder="New KPI or goal"></td><td><input class="in" data-nf="1" data-k="new${i}" data-f="unit" placeholder="Unit" style="width:80px"></td><td><select class="in" data-nf="1" data-k="new${i}" data-f="agg"><option value="sum">Sum</option><option value="avg">Average</option></select></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="new${i}" data-f="t"></td><td><input class="cell" data-nf="1" inputmode="decimal" data-k="new${i}" data-f="a"></td><td class="num"></td><td><input class="in" style="width:100%" data-nf="1" data-k="new${i}" data-f="r"></td><td></td></tr>`).join('');
+  h += `<div class="kpis">${kpi('KPIs',r.kpis.length)}${kpi('Achievement ('+PERIODS.find(x=>x[0]===per)[1].toLowerCase()+')',pctS(r.pct),'average of KPI %')}${kpi('Below '+thr()+'%',r.behind.length)}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>${per==='quarterly'?'Planned':'Target'} vs achieved</h2><span class="muted small">"Adds up as": Sum for counts and amounts; Average for rates and percentages</span></div>
+    <div class="tbl-wrap sheet"><table><thead><tr><th>#</th><th>KPI / goal</th><th>Unit</th><th>Adds up as</th><th class="num">${per==='quarterly'?'Planned':'Target'}</th><th class="num">Achieved</th><th class="num">%</th><th>Remarks / reason for delay</th><th></th></tr></thead><tbody>${rows}${nr}</tbody></table></div>
+    <div class="row" style="margin-top:14px"><span class="faint small">% = achieved ÷ ${per==='quarterly'?'planned':'target'}. Department achievement = average of the KPI percentages.</span><span class="spacer"></span><button class="btn primary" data-act="saveTargets">Save</button></div></section>`;
+  if (per!=='weekly' && r.kpis.length){
+    const sub = per==='monthly' ? monthInfo(S.month).weeks.map(w=>`Week ${w.n}`) : qInfo(S.quarter).months.map(m=>MN[+m.slice(5)-1]);
+    const cells = k => (per==='monthly'?k.ws:k.ms).map(x=>`<td class="num small">${x.t==null&&x.a==null?'<span class="faint">–</span>':`${fmt(x.a)} <span class="faint">/ ${fmt(x.t)}</span>`}</td>`).join('');
+    h += `<section class="panel"><div class="panel-head"><h2>How it adds up</h2><span class="muted small">Achieved / target in each ${per==='monthly'?'week':'month'}</span></div><div class="tbl-wrap"><table><thead><tr><th>KPI / goal</th>${sub.map(x=>`<th class="num">${x}</th>`).join('')}<th class="num">Total used</th></tr></thead><tbody>${r.kpis.map(k=>`<tr><td>${esc(k.name)}</td>${cells(k)}<td class="num">${fmt(k.a)} <span class="faint">/ ${fmt(k.t)}</span>${k.direct?' <span class="faint small">(typed)</span>':''}</td></tr>`).join('')}</tbody></table></div></section>`;
+  }
   return h;
 }
 function collectKpiInputs(){ const o={}; document.querySelectorAll('[data-k][data-f]').forEach(i=>{ (o[i.dataset.k] ||= {})[i.dataset.f]=i.value.trim(); }); return o; }
 async function saveDeptDoc(fy, did, fn){
-  const doc = JSON.parse(JSON.stringify(getDeptDoc(did, fy))); doc.months ||= {}; doc.quarters ||= {}; doc.kpis ||= [];
+  const doc = JSON.parse(JSON.stringify(getDeptDoc(did, fy))); doc.weeks ||= {}; doc.months ||= {}; doc.quarters ||= {}; doc.kpis ||= [];
   fn(doc); doc.updatedAt=new Date().toISOString(); doc.updatedBy=S.user.name;
   S.dept[deptDocId(fy,did)] = doc;
   try{ await Store.set('dept', deptDocId(fy,did), doc); S.dirty=false; toast('Saved'); render(); }catch(e){ toast('Could not save: '+e.message); }
@@ -1183,33 +1438,34 @@ async function saveDeptDoc(fy, did, fn){
 function applyNewKpis(doc, v, onNew){
   Object.entries(v).filter(([k])=>k.startsWith('new')).forEach(([,x])=>{ if (!x.name) return; const id='k'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); doc.kpis.push({id,name:x.name,unit:x.unit||'',agg:x.agg||'sum'}); onNew(id,x); });
 }
-function saveDeptMonth(){
-  const did=S.deptSel, fy=fyStart(S.month), v=collectKpiInputs();
+async function saveTargets(){
+  const did=S.deptSel, per=S.deptPeriod, v=collectKpiInputs();
+  const fy = per==='quarterly' ? qInfo(S.quarter).fy : fyStart(S.month);
+  const key = per==='weekly' ? `${S.month}-W${S.week}` : per==='monthly' ? S.month : S.quarter;
+  const bucket = per==='weekly'?'weeks':per==='monthly'?'months':'quarters';
+  const missing = Object.entries(v).filter(([id,x])=>{ const cur = deptPeriod(did,per).kpis.find(k=>k.id===id); const t = has(x.t)?num(x.t):cur?.fromT, a = has(x.a)?num(x.a):cur?.fromA; return (x.name||cur) && t>0 && a!=null && a/t*100<thr() && !x.r && !(cur&&cur.r); }).map(([id,x])=>x.name||id);
+  if (missing.length && !(await ask('Reason for delay missing', `Below ${thr()}% with no remark: ${missing.join(', ')}. The CEO sees these reasons next to each delay.`, 'Save without reason'))) return;
   saveDeptDoc(fy, did, doc=>{
-    const mv = doc.months[S.month] ||= {};
-    doc.kpis.forEach(k=>{ const x=v[k.id]; if(!x) return; if (x.name) k.name=x.name; k.unit=x.unit??k.unit; k.agg=x.agg||k.agg||'sum'; mv[k.id]={t:x.t??'', a:x.a??''}; });
-    applyNewKpis(doc, v, (id,x)=>{ mv[id]={t:x.t||'', a:x.a||''}; });
-  });
-}
-function saveDeptQuarter(){
-  const did=S.deptSel, Q=qInfo(S.quarter), v=collectKpiInputs();
-  saveDeptDoc(Q.fy, did, doc=>{
-    const qv = doc.quarters[Q.id] ||= {};
-    doc.kpis.forEach(k=>{ const x=v[k.id]; if(!x) return; qv[k.id]={t:x.qt??'', a:x.qa??''}; });
-    applyNewKpis(doc, v, (id,x)=>{ qv[id]={t:x.qt||'', a:x.qa||''}; });
+    const store = (doc[bucket] ||= {})[key] ||= {};
+    doc.kpis.forEach(k=>{ const x=v[k.id]; if(!x) return; if (x.name) k.name=x.name; if (x.unit!=null) k.unit=x.unit; if (x.agg) k.agg=x.agg; store[k.id]={t:x.t??'', a:x.a??'', r:x.r??''}; });
+    applyNewKpis(doc, v, (id,x)=>{ store[id]={t:x.t||'', a:x.a||'', r:x.r||''}; });
   });
 }
 function vDepartments(){
-  const quarter = S.deptTab==='quarter';
-  let h = topbar('Departments', quarter?`${qInfo(S.quarter).label} (${qInfo(S.quarter).span}) · planned vs achieved`:`${monthInfo(S.month).label} · target vs achieved`, '', quarter?'quarter':'month');
-  h += tabs('deptTab',[['month','Monthly'],['quarter','Quarterly']]);
-  const data = S.config.departments.map(d=>({d, r: quarter ? deptQuarter(d.id,S.quarter) : deptMonth(d.id,S.month)}));
+  const per = S.deptPeriod;
+  let h = topbar('Departments', `${periodText(per)} · target vs achieved with the HOD's reason for delay`, '', per==='quarterly'?'quarter':'month');
+  h += tabs('deptPeriod', PERIODS); if (per==='weekly') h += weekButtons();
+  const data = S.config.departments.map(d=>({d, r: deptPeriod(d.id, per)}));
   const filled = data.filter(x=>x.r.pct!=null);
-  h += `<div class="kpis">${kpi('Departments reporting', filled.length+' / '+data.length)}${kpi('Average achievement', pctS(filled.length?filled.reduce((s,x)=>s+x.r.pct,0)/filled.length:null))}${kpi('At or above '+thr()+'%', filled.filter(x=>x.r.pct>=thr()).length)}</div>`;
-  h += `<section class="panel"><div class="panel-head"><h2>By department</h2></div>${filled.length?barChart({groups:filled.map(x=>({label:x.d.name.length>12?x.d.name.split(/[ &]+/).map(w=>w[0]).join(''):x.d.name, values:[x.r.pct]})),pctMode:true,ref:thr(),colors:[v=>v>=thr()?'var(--good)':'var(--steel)']}):emptyHTML('No department figures yet','HODs enter them under Monthly target or Quarterly.')}</section>`;
-  const rows = data.map(x=>`<tr><td>${esc(x.d.name)}</td><td class="small">${x.r.kpis.length?x.r.kpis.map(k=>`${esc(k.name)}: ${k.a==null?'–':fmt(k.a)} / ${k.t==null?'–':fmt(k.t)}${k.unit?' '+esc(k.unit):''}${k.direct?' <span class="faint">(quarter entry)</span>':''}`).join('<br>'):'<span class="faint">No KPIs set</span>'}</td><td class="num">${pctChip(x.r.pct)}</td><td><button class="btn ghost sm" data-act="openDept" data-d="${x.d.id}">Open</button></td></tr>`).join('');
-  h += `<section class="panel"><div class="tbl-wrap"><table><thead><tr><th>Department</th><th>KPIs: achieved / ${quarter?'planned':'target'}</th><th class="num">Average %</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  h += `<div class="kpis">${kpi('Departments reporting', filled.length+' / '+data.length)}${kpi('Average achievement', pctS(filled.length?filled.reduce((s,x)=>s+x.r.pct,0)/filled.length:null))}${kpi('At or above '+thr()+'%', filled.filter(x=>x.r.pct>=thr()).length)}${kpi('KPIs below '+thr()+'%', filled.reduce((s,x)=>s+x.r.behind.length,0))}</div>`;
+  h += `<section class="panel"><div class="panel-head"><h2>By department</h2></div>${filled.length?barChart({groups:filled.map(x=>({label:x.d.name.length>12?x.d.name.split(/[ &]+/).map(w=>w[0]).join(''):x.d.name, values:[x.r.pct]})),pctMode:true,ref:thr(),colors:[v=>v>=thr()?'var(--good)':'var(--steel)']}):emptyHTML('No department figures for this period','HODs enter them under Targets vs achieved.')}</section>`;
+  const rows = data.sort((a,b)=>(a.r.pct??999)-(b.r.pct??999)).map(x=>`<tr><td>${esc(x.d.name)}</td><td class="num">${pctChip(x.r.pct)}</td><td class="small">${x.r.kpis.length?x.r.kpis.map(k=>`<div>${esc(k.name)}: ${k.a==null?'–':fmt(k.a)} / ${k.t==null?'–':fmt(k.t)}${k.unit?' '+esc(k.unit):''} ${k.pct!=null?`<span class="${k.pct<thr()?'':'faint'}" style="${k.pct<thr()?'color:var(--risk)':''}">(${Math.round(k.pct)}%)</span>`:''}${k.r?` <span class="faint">— ${esc(k.r)}</span>`:(k.pct!=null&&k.pct<thr()?' <span style="color:var(--risk)">— no reason given</span>':'')}</div>`).join(''):'<span class="faint">No KPIs set</span>'}</td><td><button class="btn ghost sm" data-act="openDept" data-d="${x.d.id}">Open</button></td></tr>`).join('');
+  h += `<section class="panel"><div class="panel-head"><h2>Detail</h2><span class="muted small">Lowest achievement first</span></div><div class="tbl-wrap"><table><thead><tr><th>Department</th><th class="num">Achievement</th><th>KPIs: achieved / ${per==='quarterly'?'planned':'target'}, with reason for delay</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
   return h;
+}
+function deptTableHTML(r, per){
+  if (!r.kpis.length) return emptyHTML('No KPIs set','Add KPIs under Targets vs achieved.');
+  return `<div class="tbl-wrap"><table><thead><tr><th>KPI / goal</th><th class="num">${per==='quarterly'?'Planned':'Target'}</th><th class="num">Achieved</th><th class="num">%</th><th>Remarks / reason for delay</th></tr></thead><tbody>${r.kpis.map(k=>`<tr><td>${esc(k.name)}<div class="faint small">${esc(k.unit||'')}</div></td><td class="num">${fmt(k.t)}</td><td class="num">${fmt(k.a)}</td><td class="num">${pctChip(k.pct)}</td><td class="small">${esc(k.r||'')}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ---------- weekly, monthly & quarterly meetings ----------
@@ -1219,7 +1475,20 @@ function meetingProjects(){ const u=S.user; if (u.role==='cluster') return S.con
 const meetMode = () => ['ceo','cluster'].includes(S.user.role) ? viewMode() : 'approved';
 const showDepts = () => S.user.role!=='cluster' && S.user.role!=='project';
 const scopeNote = () => S.user.role==='cluster' ? `Your projects: ${meetingProjects().map(p=>esc(p.name)).join(', ')}` : '';
-const notePage = (type, per, key, title, sub, empty) => ({t:title, html:()=>`<h1>${title}</h1><p class="muted" style="margin:4px 0 18px">${sub}</p>${notesSlide(type,per,key,empty)}`});
+const notePage = (type, per, key, title, sub, empty) => ({t:title, html:()=>{ const f = key==='bott' ? bottFilter() : null; return `<h1>${title}</h1><p class="muted" style="margin:4px 0 18px">${sub}${f?` · raised by or needing ${esc(dept(S.user.id)?.name)}`:''}</p>${notesSlide(type,per,key,empty,f)}`; }});
+function bottFilter(){ if (S.user.role!=='hod') return null; const d=dept(S.user.id); const k=slug(d.name); return r => slug(r.by)===k || slug(r.support||'').includes(k); }
+function hodSlides(type){
+  const d=dept(S.user.id); const per = type==='weekly'?`${S.month}-W${S.meet.week}`:type==='monthly'?S.month:S.quarter;
+  const label = type==='weekly'?`${monthInfo(S.month).label} · Week ${S.meet.week}`:type==='monthly'?monthInfo(S.month).label:qInfo(S.quarter).label;
+  const r = type==='weekly'?deptWeek(d.id,S.month,S.meet.week):type==='monthly'?deptMonth(d.id,S.month):deptQuarter(d.id,S.quarter);
+  const pp = type==='quarterly'?'quarterly':type;
+  const s = [ notePage(type,per,'good','Good news',label,'No good news shared yet. Add it under Meeting notes.'),
+    notePage(type,per,'appr','Appreciation',label,'No appreciation shared yet.'),
+    {t:d.name, html:()=>`<h1>${esc(d.name)}</h1><p class="muted" style="margin:4px 0 18px">${label} · achievement ${pctS(r.pct)} (average of KPI %)</p><section class="panel">${deptTableHTML(r,pp)}</section>`} ];
+  if (type==='quarterly') s.push(notePage('quarterly',per,'oe','Operational Excellence','Initiatives taken this quarter and the output received or expected','No initiatives shared yet.'));
+  s.push(notePage(type,per,'bott','Bottlenecks',label,'No bottlenecks raised by or for your department.'));
+  return s;
+}
 function deptSlides(getter, periodText, cols){
   const depts = S.config.departments.map(d=>({d, r:getter(d.id)})); const f=depts.filter(x=>x.r.pct!=null);
   const out = [{t:'Departments', html:()=>`<h1>Departments</h1><p class="muted" style="margin:4px 0 18px">${periodText} · average across each department's KPIs</p>
@@ -1236,6 +1505,7 @@ function portfolioSlide(pf, title){ return {t:title, html:()=>{ const pt=paceTon
   return `${scopeNote()?`<p class="muted small" style="margin-bottom:10px">${scopeNote()}</p>`:''}<div class="hero-num"><span class="big" style="color:var(--${pt==='none'?'ink':pt})">${pctS(pf.pct)}</span><div><h2>of ${pf.mi.name}'s target achieved</h2><p class="muted">${fmt(pf.mtd)} of ${fmt(pf.target)} ${esc(S.config.settings.unit)}${pf.lastIdx>=0?` · till Week ${pf.lastIdx+1} of ${pf.mi.N}`:''}${pf.expNow!=null&&pf.daysDone<pf.mi.dim?` · ${thr()}% pace by now: ${pctS(pf.expNow)}`:''}</p></div></div>
   <section class="panel" style="margin-top:22px">${board(pf)}</section><section class="panel"><h2 style="margin-bottom:10px">What this means</h2>${insightsHTML(insightsFor(pf,{pending:S.user.role!=='hod'}).slice(0,5))}</section>`; }}; }
 function weeklySlides(){
+  if (S.user.role==='hod') return hodSlides('weekly');
   const pids = meetingProjects().map(p=>p.id); const pf = calcPortfolio(pids,S.month,meetMode()); const per = `${S.month}-W${S.meet.week}`;
   const s = [ notePage('weekly',per,'good','Good news','Personal and professional, from across the teams','No good news shared for this week yet. Add it under Meeting notes.'),
     notePage('weekly',per,'appr','Appreciation','People and teams who made a difference this week','No appreciation shared for this week yet.'),
@@ -1247,6 +1517,7 @@ function weeklySlides(){
   return s;
 }
 function monthlySlides(){
+  if (S.user.role==='hod') return hodSlides('monthly');
   const pids = meetingProjects().map(p=>p.id); const pf = calcPortfolio(pids,S.month,meetMode()); const per=S.month; const mi=pf.mi;
   const s = [ notePage('monthly',per,'good','Good news',mi.label,'No good news shared for this month yet. Add it under Meeting notes → Monthly meeting.'),
     notePage('monthly',per,'appr','Appreciation',mi.label,'No appreciation shared for this month yet.'),
@@ -1259,6 +1530,7 @@ function monthlySlides(){
   return s;
 }
 function quarterlySlides(){
+  if (S.user.role==='hod') return hodSlides('quarterly');
   const Q=qInfo(S.quarter); const pids=meetingProjects().map(p=>p.id); const qd=calcQuarter(pids,Q.id);
   const s = [ notePage('quarterly',Q.id,'good','Good news',Q.label,'No good news shared for this quarter yet. Add it under Meeting notes → Quarterly meeting.'),
     notePage('quarterly',Q.id,'appr','Appreciation',Q.label,'No appreciation shared for this quarter yet.'),
@@ -1304,15 +1576,25 @@ function exportSummary(){
   saveFile(`${MN[mi.m-1]}_${fyLabel(S.month)}_Week${Math.max(1,pf.lastIdx+1)}_Achievement.xlsx`, wbBlob(wb));
 }
 function exportIncentive(){
-  const run = incentiveRun(S.month); const mi=monthInfo(S.month);
-  const aoa=[[`Project incentive register · ${mi.label} · approved figures`],[],['Name','Designation','Department','Type','Project allocation','Location','Monthly base','Calculated','At '+thr()+'%','Override','Payable']];
-  run.rows.forEach(r=>aoa.push([r.name,r.designation,r.department,r.type,r.lines.map(l=>proj(l.pid)?.name+(r.type==='Shared'?' '+Math.round(l.share)+'%':'')).join(', '),r.location,r.base,Math.round(r.earned),Math.round(r.potential),r.override?.amt??'',Math.round(r.final)]));
-  aoa.push([],['Total','','','','','','',Math.round(run.rows.reduce((s,r)=>s+r.earned,0)),Math.round(run.potential),'',Math.round(run.total)]);
-  const p=[['Project','Target','Achieved','% achieved','Incentive rate %','People','Earned','At '+thr()+'%']];
-  run.pf.list.forEach(c=>{ const b=run.byProject[c.pid]; p.push([c.p.name,c.target,c.mtd,c.pct==null?'':+(c.pct).toFixed(1),run.pmap[c.pid].earnPct,b.heads,Math.round(b.earned),Math.round(b.potential)]); });
-  const wb=XLSX.utils.book_new(); const w1=XLSX.utils.aoa_to_sheet(aoa); w1['!cols']=[{wch:24},{wch:18},{wch:16},{wch:11},{wch:30},{wch:14},{wch:12},{wch:12},{wch:12},{wch:10},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,w1,'Register'); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(p),'By project');
-  saveFile(`Project_Incentive_${MN[mi.m-1]}_${mi.y}.xlsx`, wbBlob(wb));
+  const run = incentiveRun(S.month); const mi=monthInfo(S.month); const fin=run.fin; const fmap={}; (fin?.rows||[]).forEach(x=>fmap[x.id]=x);
+  const status = fin ? `Finalised ${new Date(fin.at).toLocaleDateString('en-IN')} by ${fin.by}` : monthClosed(S.month) ? 'Calculated, month closed, not finalised' : 'Draft: month not closed';
+  const wb=XLSX.utils.book_new(); const add=(name,aoa,cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa); if(cols) ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws,name); };
+  const sum=[[`Project incentive · ${mi.label}`],[status],[`Rule: ${ruleText()}`],[],['Project','Month target','Achieved','Achieved %','Qualifies','Rate %','Dedicated people','Shared FTE','Dedicated payout','Shared payout','Total payout']];
+  run.pf.list.forEach(c=>{ const b=run.byProject[c.pid]; const q=run.pmap[c.pid]; sum.push([c.p.name,c.target,c.mtd,c.pct==null?'':+c.pct.toFixed(1),q.earnPct?'Yes':'No',q.earnPct,b.dedHeads,+b.shFte.toFixed(2),Math.round(b.ded),Math.round(b.sh),Math.round(b.earned)]); });
+  sum.push([],['Total','','','','','','','',Math.round(Object.values(run.byProject).reduce((s,b)=>s+b.ded,0)),Math.round(Object.values(run.byProject).reduce((s,b)=>s+b.sh,0)),Math.round(run.calcTotal)]);
+  if (fin) sum.push(['Adjustments after finalisation','','','','','','','','','',Math.round(run.total-fin.rows.reduce((s,x)=>s+num(x.calc),0))],['Final payable','','','','','','','','','',Math.round(run.total)]);
+  add('Summary', sum, [18,13,12,11,10,8,15,11,15,13,13]);
+  const head=['Name','Designation','Department','Location','Type','Allocation rule','Projects and shares','Monthly base','Calculated','Final payable','Adjustment','Reason'];
+  const line = r => { const f=fmap[r.id]; const calc=f?num(f.calc):Math.round(r.earned); const final=f?num(f.final):Math.round(r.earned); return [r.name,r.designation,r.department,r.location,r.type,r.rule,allocText(r),r.base,calc,final,final-calc,f?.reason||'']; };
+  const cols=[24,18,16,14,11,30,34,12,12,13,11,30];
+  add('All employees',[head,...run.rows.map(line)],cols);
+  add('Dedicated',[head,...run.rows.filter(r=>r.type==='Dedicated').map(line)],cols);
+  add('Shared',[head,...run.rows.filter(r=>r.type!=='Dedicated').map(line)],cols);
+  const split=[['Project','Name','Designation','Type','Share %','Monthly base','Base on this project','Project achieved %','Rate %','Incentive']];
+  S.config.projects.forEach(p=>run.rows.forEach(r=>r.lines.filter(l=>l.pid===p.id).forEach(l=>split.push([p.name,r.name,r.designation,r.type,+l.share.toFixed(1),r.base,Math.round(r.base*l.share/100),l.pct==null?'':+l.pct.toFixed(1),l.rate,Math.round(l.e)]))));
+  add('Project-wise split',split,[16,24,18,11,9,12,16,15,8,11]);
+  add('Logic',[['How this workbook is calculated'],[],['1','A project qualifies when approved achievement for the month ÷ month target ≥ '+thr()+'%.'],['2','Rate: '+ruleText()+'. Below the first slab nothing is paid.'],['3','Incentive per person = Σ (monthly base × allocation share % × project rate %).'],['4','Dedicated: 100% share on one project.'],['5','Shared: listed projects, equal split unless shares are given (Marvel:60, Miraya:40).'],['6','All: every project weighted by its month target (heads of shared functions). All equal: equal split.'],['7','Final payable = calculated amount unless changed in Finalise & adjust; every change carries a reason.']],[4,110]);
+  saveFile(`Project_Incentive_${MN[mi.m-1]}_${mi.y}${fin?'_Final':''}.xlsx`, wbBlob(wb));
 }
 
 /* ---------- sample data ---------- */
@@ -1328,7 +1610,8 @@ async function loadDemo(){
       const lastW = m<cur ? mi.N : cw;
       for (let n=1;n<=lastW;n++){ const w=mi.weeks[n-1]; const vals={};
         let shape=1; if (m===cur && p.id==='miraya') shape=[1.1,.8,.5,.45,.4][n-1]; if (m===cur && p.id==='mithila-01') shape=[.6,.5,.7,.6,.6][n-1];
-        p.buildings.forEach(b=>{ let add = e.targets[b.id]*w.days/mi.dim*base*shape*(0.75+r()*0.5); if (p.id==='marvel'&&b.name==='Wing D'&&m===cur) add=0; if (b.kind==='Infra'&&p.id==='midas-city') add*=.45; raw[b.id]=Math.round((raw[b.id]+add)*100)/100; vals[b.id]={cum:raw[b.id]}; });
+        p.buildings.forEach(b=>{ let add = e.targets[b.id]*w.days/mi.dim*base*shape*(0.75+r()*0.5); if (p.id==='marvel'&&b.name==='Wing D'&&m===cur) add=0; if (b.kind==='Infra'&&p.id==='midas-city') add*=.45; raw[b.id]=Math.round((raw[b.id]+add)*100)/100; vals[b.id]={cum:raw[b.id]};
+          if (m===cur){ if (p.id==='marvel'&&b.name==='Wing D') vals[b.id].r='Revised structural drawings awaited'; if (p.id==='midas-city'&&b.kind==='Infra') vals[b.id].r='RMC supply delayed'; if (p.id==='miraya'&&n>=2&&b.name==='Wing B') vals[b.id].r='Shuttering contractor short of labour'; if (p.id==='mithila-01') vals[b.id].r='Slab cycle slow, extra gang from next week'; } });
         const status = (m===cur && n===cw) ? (['marvel','miraya','niyoshi-park'].includes(p.id)?'submitted':'draft') : 'approved';
         e.weeks[n]={vals,status,submittedAt:now,submittedBy:p.id==='midas-city'?S.config.coordinator.name:p.name,...(status==='approved'?{approvedBy:cluster(p.clusterId)?.name||'CEO',approvedAt:now}:{}),log:[]};
       }
@@ -1337,7 +1620,9 @@ async function loadDemo(){
   const kp = {'sales':[['Bookings','units','sum',30],['Collections','₹ Cr','sum',12]],'accounts-finance':[['Vendor payments on time','%','avg',95],['Month-end close (days)','days','avg',5]],'purchase':[['POs released on time','%','avg',90],['Cost saving','₹ L','sum',15]],'hr-admin':[['Positions closed','nos','sum',8],['Training hours','hrs','sum',120]],'planning':[['Schedules issued','nos','sum',6]],'safety':[['Site audits','nos','sum',12]],'quality':[['Inspections closed','nos','sum',40]],'liaisoning':[['Approvals received','nos','sum',3]],'design-development':[['Drawings released','nos','sum',25]],'marketing':[['Qualified leads','nos','sum',400]]};
   const fy=fyStart(cur);
   for (const d of S.config.departments){ const list=kp[d.id]; if(!list) continue; const doc={deptId:d.id,fy,kpis:list.map((k,i)=>({id:'k'+i,name:k[0],unit:k[1],agg:k[2]})),months:{},quarters:{}};
-    months.forEach(m=>{ if (m===cur) return; doc.months[m]={}; list.forEach((k,i)=>{ const t=k[3]; const a=Math.round(t*(0.65+r()*0.5)*10)/10; doc.months[m]['k'+i]={t:String(t),a:String(k[2]==='avg'?Math.min(a,100):a)}; }); });
+    doc.weeks={}; const REASONS=['Vendor delay','Approval pending with authority','Short-staffed this month','Site access delayed','Waiting on client inputs'];
+    months.forEach(m=>{ if (m===cur){ const mi=monthInfo(m); for(let n=1;n<=todayWeek(m);n++){ doc.weeks[`${m}-W${n}`]={}; list.forEach((k,i)=>{ const t=k[2]==='avg'?k[3]:Math.round(k[3]*mi.weeks[n-1].days/mi.dim*10)/10; const a=Math.round(t*(0.6+r()*0.55)*10)/10; doc.weeks[`${m}-W${n}`]['k'+i]={t:String(t),a:String(k[2]==='avg'?Math.min(a,100):a),r: a/t<0.8?REASONS[Math.floor(r()*REASONS.length)]:''}; }); } return; }
+      doc.months[m]={}; list.forEach((k,i)=>{ const t=k[3]; const a=Math.round(t*(0.65+r()*0.5)*10)/10; doc.months[m]['k'+i]={t:String(t),a:String(k[2]==='avg'?Math.min(a,100):a),r: a/t<0.8?REASONS[Math.floor(r()*REASONS.length)]:''}; }); });
     await Store.set('dept',deptDocId(fy,d.id),doc); S.dept[deptDocId(fy,d.id)]=doc; }
   const wkPer=`${cur}-W${cw}`, qid=quarterOf(cur).id; const vj={role:'cluster',id:'vijay',name:'Vijaykumar Bhalekar'}, hr={role:'hod',id:'hr-admin',name:'HR & Admin'};
   const notes=[['weekly',wkPer,vj,{good:[{name:'Marvel site team',professional:'Wing C slab cast two days ahead of plan'},{name:'Sneha Kulkarni',personal:'Blessed with a baby girl'}],appr:[{name:'Midas City QS team',text:'Closed all pending contractor bills before the deadline'}],bott:[{area:'Marvel Wing D',issue:'Work on hold for revised structural drawings',support:'Design & Development',status:'Open',from:'Sep Week 2'},{area:'Midas City infra',issue:'RMC supply delayed twice this week',support:'Purchase',status:'In progress'}]}],
@@ -1372,10 +1657,12 @@ document.addEventListener('click', async ev=>{
     case 'reopen': { const e=JSON.parse(JSON.stringify(getEntry(S.month,b.dataset.p))); const W=e.weeks[S.week]; if(!W) break; W.status='draft'; (W.log||=[]).push({at:new Date().toISOString(),by:'CEO',action:'reopened'}); await saveEntry(e); toast('Reopened as draft'); render(); break; }
     case 'decide': decide(b.dataset.k, b.dataset.d); break;
     case 'saveNotes': saveNotes(); break;
-    case 'saveDeptMonth': saveDeptMonth(); break;
-    case 'saveDeptQuarter': saveDeptQuarter(); break;
-    case 'delKpi': { const fy=fyStart(S.month); const doc=getDeptDoc(S.deptSel,fy); const k=(doc.kpis||[]).find(x=>x.id===b.dataset.k); if (k && await ask(`Delete "${k.name}"?`,'The KPI and its figures for this financial year are removed.','Delete',true)) saveDeptDoc(fy,S.deptSel,d=>{ d.kpis=d.kpis.filter(x=>x.id!==k.id); }); break; }
-    case 'openDept': S.deptSel=b.dataset.d; S.view = S.deptTab==='quarter'?'dquarter':'dmonth'; render(); window.scrollTo(0,0); break;
+    case 'saveTargets': saveTargets(); break;
+    case 'openProj': S.projectSel=b.dataset.p; S.view='project'; render(); window.scrollTo(0,0); break;
+    case 'finalise': finaliseMonth(); break;
+    case 'unfinalise': if (await ask('Reopen the calculation?','The finalised snapshot and every change made to it will be discarded.','Reopen',true)){ const d={...(S.inc[S.month]||{})}; delete d.finalized; S.inc[S.month]=d; await Store.set('incentives',S.month,d); toast('Reopened'); render(); } break;
+    case 'delKpi': { const fy=S.deptPeriod==='quarterly'?qInfo(S.quarter).fy:fyStart(S.month); const doc=getDeptDoc(S.deptSel,fy); const k=(doc.kpis||[]).find(x=>x.id===b.dataset.k); if (k && await ask(`Delete "${k.name}"?`,'The KPI and its figures for this financial year are removed.','Delete',true)) saveDeptDoc(fy,S.deptSel,d=>{ d.kpis=d.kpis.filter(x=>x.id!==k.id); }); break; }
+    case 'openDept': S.deptSel=b.dataset.d; S.view='targets'; render(); window.scrollTo(0,0); break;
     case 'exportSummary': exportSummary(); break;
     case 'exportIncentive': exportIncentive(); break;
     case 'template': downloadTemplate(); break;
@@ -1407,7 +1694,8 @@ document.addEventListener('change', async ev=>{
     case 'projectSel': if (!(await leaveOk())){ t.value=S.projectSel; break; } S.dirty=false; S.projectSel=v; render(); break;
     case 'deptSel': if (!(await leaveOk())){ t.value=S.deptSel; break; } S.dirty=false; S.deptSel=v; render(); break;
     case 'upload': if (t.files[0]) uploadStaff(t.files[0]); t.value=''; break;
-    case 'ovr': setOverride(t.dataset.id, v.trim()); break;
+    case 'finAmt': updateFinal(t.dataset.id,'final',v); break;
+    case 'finReason': updateFinal(t.dataset.id,'reason',v); break;
     case 'pName': if(!v.trim()) return render(); P().name=v.trim(); await saveConfig('Renamed'); break;
     case 'pCl': P().clusterId=v; await saveConfig('Cluster head updated'); render(); break;
     case 'pPw': if(!v.trim()) return render(); P().password=v.trim(); await saveConfig('Password updated'); break;
